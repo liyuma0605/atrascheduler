@@ -38,7 +38,7 @@ const INITIAL_PAYROLL_DATA = {
     "Angcos, Mark Joseph E.",
     "Cayao, Leomyr D.",
     "Chua, Hillary Gabriel G.",
-    "Diano, Hiller",
+    "Diano, Hitler",
     "Dusaran, John Paul E.",
     "Escamilla, Jan Denise J.",
     "Fernandez, Joanalyn Y.",
