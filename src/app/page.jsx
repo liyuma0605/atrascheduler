@@ -92,54 +92,68 @@ export default function ScheduleEditor() {
     })()
 
   useEffect(() => {
-    const loadSavedData = () => {
+    const loadSavedData = async () => {
       try {
+        console.log("Starting data load process...")
+
         // Load main data
         const savedScheduleData = localStorage.getItem("monthlyScheduleData")
         const savedPayrollData = localStorage.getItem("monthlyPayrollData")
         const savedRenderedDays = localStorage.getItem("monthlyRenderedDays")
         const savedLogo = localStorage.getItem("websiteLogo")
 
+        let scheduleLoaded = false
+        let payrollLoaded = false
+        let renderedLoaded = false
+
         if (savedScheduleData) {
           const parsedScheduleData = JSON.parse(savedScheduleData)
           setMonthlyScheduleData(parsedScheduleData)
+          scheduleLoaded = true
           console.log("Loaded schedule data:", Object.keys(parsedScheduleData).length, "months")
         }
 
         if (savedPayrollData) {
           const parsedPayrollData = JSON.parse(savedPayrollData)
           setMonthlyPayrollData(parsedPayrollData)
+          payrollLoaded = true
           console.log("Loaded payroll data:", Object.keys(parsedPayrollData).length, "months")
         }
 
         if (savedRenderedDays) {
           const parsedRenderedDays = JSON.parse(savedRenderedDays)
           setMonthlyRenderedDays(parsedRenderedDays)
+          renderedLoaded = true
           console.log("Loaded rendered days:", Object.keys(parsedRenderedDays).length, "months")
         }
 
         if (savedLogo) {
           setLogoUrl(savedLogo)
+          console.log("Loaded logo")
         }
 
+        // Try backup data if main data failed to load
         const backupSchedule = localStorage.getItem("backup_monthlyScheduleData")
         const backupPayroll = localStorage.getItem("backup_monthlyPayrollData")
         const backupRendered = localStorage.getItem("backup_monthlyRenderedDays")
 
-        if (backupSchedule && !savedScheduleData) {
+        if (backupSchedule && !scheduleLoaded) {
           setMonthlyScheduleData(JSON.parse(backupSchedule))
           console.log("Loaded from backup schedule data")
         }
-        if (backupPayroll && !savedPayrollData) {
+        if (backupPayroll && !payrollLoaded) {
           setMonthlyPayrollData(JSON.parse(backupPayroll))
           console.log("Loaded from backup payroll data")
         }
-        if (backupRendered && !savedRenderedDays) {
+        if (backupRendered && !renderedLoaded) {
           setMonthlyRenderedDays(JSON.parse(backupRendered))
           console.log("Loaded from backup rendered days")
         }
 
-        setIsDataLoaded(true)
+        setTimeout(() => {
+          setIsDataLoaded(true)
+          console.log("Data loading completed - all changes should now be visible")
+        }, 100)
       } catch (error) {
         console.error("Error loading saved data:", error)
         setIsDataLoaded(true)
@@ -148,6 +162,42 @@ export default function ScheduleEditor() {
 
     loadSavedData()
   }, [])
+
+  useEffect(() => {
+    if (!isDataLoaded) return // Wait for initial data load
+
+    const monthKey = `${selectedMonth}_${selectedYear}`
+    console.log(`Switching to month: ${monthKey}`)
+
+    // Initialize month data if it doesn't exist
+    if (!monthlyPayrollData[monthKey]) {
+      console.log(`Initializing payroll data for ${monthKey}`)
+      setMonthlyPayrollData((prev) => ({
+        ...prev,
+        [monthKey]: { ...INITIAL_PAYROLL_DATA },
+      }))
+
+      const initialRendered = {}
+      Object.entries(INITIAL_PAYROLL_DATA).forEach(([category, employees]) => {
+        employees.forEach((employee) => {
+          initialRendered[employee] = 0
+        })
+      })
+
+      setMonthlyRenderedDays((prev) => ({
+        ...prev,
+        [monthKey]: initialRendered,
+      }))
+    }
+
+    if (!monthlyScheduleData[monthKey]) {
+      console.log(`Initializing schedule data for ${monthKey}`)
+      setMonthlyScheduleData((prev) => ({
+        ...prev,
+        [monthKey]: createInitialCalendarData(),
+      }))
+    }
+  }, [selectedMonth, selectedYear, monthlyPayrollData, monthlyScheduleData, isDataLoaded])
 
   useEffect(() => {
     if (!isDataLoaded) return // Don't save until initial data is loaded
@@ -194,36 +244,6 @@ export default function ScheduleEditor() {
       console.error("Error saving logo:", error)
     }
   }, [logoUrl, isDataLoaded])
-
-  useEffect(() => {
-    const monthKey = `${selectedMonth}_${selectedYear}`
-
-    if (!monthlyPayrollData[monthKey]) {
-      setMonthlyPayrollData((prev) => ({
-        ...prev,
-        [monthKey]: { ...INITIAL_PAYROLL_DATA },
-      }))
-
-      const initialRendered = {}
-      Object.entries(INITIAL_PAYROLL_DATA).forEach(([category, employees]) => {
-        employees.forEach((employee) => {
-          initialRendered[employee] = 0
-        })
-      })
-
-      setMonthlyRenderedDays((prev) => ({
-        ...prev,
-        [monthKey]: initialRendered,
-      }))
-    }
-
-    if (!monthlyScheduleData[monthKey]) {
-      setMonthlyScheduleData((prev) => ({
-        ...prev,
-        [monthKey]: createInitialCalendarData(),
-      }))
-    }
-  }, [selectedMonth, selectedYear, monthlyPayrollData, monthlyScheduleData])
 
   const updateCurrentMonthSchedule = useCallback(
     (newScheduleData) => {
@@ -779,7 +799,7 @@ export default function ScheduleEditor() {
             ) : (
               <Calendar className="w-8 h-8 text-blue-600" />
             )}
-            <h1 className="text-3xl font-bold text-gray-800">ATRACaaS Shifting Schedule</h1>
+            <h1 className="text-3xl font-bold text-gray-800">ATRACaaS Shifting Calendar</h1>
           </div>
 
           {/* Logo Edit Section */}
@@ -885,7 +905,7 @@ export default function ScheduleEditor() {
         </div>
 
         {/* Gradient Header and Buttons */}
-        <div className="w-full max-w-6xl bg-gradient-to-r from-blue-500 to-purple-600 text-white text-center py-4 rounded-lg mb-6">
+        <div className="w-full max-w-6xl bg-black text-yellow-300 text-center py-4 rounded-lg mb-6">
           <h2 className="text-2xl font-bold uppercase tracking-wide">
             {selectedMonth} {selectedYear}
           </h2>
@@ -910,8 +930,6 @@ export default function ScheduleEditor() {
           </Button>
         </div>
       </div>
-
-      {/* ... rest of existing code remains the same ... */}
 
       {/* Calendar Grid */}
       <Card className="max-w-6xl mx-auto mb-8">
@@ -958,7 +976,7 @@ export default function ScheduleEditor() {
         </CardContent>
       </Card>
 
-      {/* ... rest of existing payroll section and instructions ... */}
+      {/* Employee Payroll Tracking */}
       <Card className="max-w-6xl mx-auto mb-8">
         <CardContent className="p-6">
           <div className="flex justify-between items-center mb-4">
