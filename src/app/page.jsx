@@ -73,6 +73,8 @@ export default function ScheduleEditor() {
   const [isEditingLogo, setIsEditingLogo] = useState(false)
   const [logoInput, setLogoInput] = useState("")
 
+  const [isDataLoaded, setIsDataLoaded] = useState(false)
+
   const currentMonthKey = `${selectedMonth}_${selectedYear}`
 
   const scheduleData = monthlyScheduleData[currentMonthKey] || createInitialCalendarData()
@@ -92,25 +94,55 @@ export default function ScheduleEditor() {
   useEffect(() => {
     const loadSavedData = () => {
       try {
+        // Load main data
         const savedScheduleData = localStorage.getItem("monthlyScheduleData")
         const savedPayrollData = localStorage.getItem("monthlyPayrollData")
         const savedRenderedDays = localStorage.getItem("monthlyRenderedDays")
         const savedLogo = localStorage.getItem("websiteLogo")
 
         if (savedScheduleData) {
-          setMonthlyScheduleData(JSON.parse(savedScheduleData))
+          const parsedScheduleData = JSON.parse(savedScheduleData)
+          setMonthlyScheduleData(parsedScheduleData)
+          console.log("Loaded schedule data:", Object.keys(parsedScheduleData).length, "months")
         }
+
         if (savedPayrollData) {
-          setMonthlyPayrollData(JSON.parse(savedPayrollData))
+          const parsedPayrollData = JSON.parse(savedPayrollData)
+          setMonthlyPayrollData(parsedPayrollData)
+          console.log("Loaded payroll data:", Object.keys(parsedPayrollData).length, "months")
         }
+
         if (savedRenderedDays) {
-          setMonthlyRenderedDays(JSON.parse(savedRenderedDays))
+          const parsedRenderedDays = JSON.parse(savedRenderedDays)
+          setMonthlyRenderedDays(parsedRenderedDays)
+          console.log("Loaded rendered days:", Object.keys(parsedRenderedDays).length, "months")
         }
+
         if (savedLogo) {
           setLogoUrl(savedLogo)
         }
+
+        const backupSchedule = localStorage.getItem("backup_monthlyScheduleData")
+        const backupPayroll = localStorage.getItem("backup_monthlyPayrollData")
+        const backupRendered = localStorage.getItem("backup_monthlyRenderedDays")
+
+        if (backupSchedule && !savedScheduleData) {
+          setMonthlyScheduleData(JSON.parse(backupSchedule))
+          console.log("Loaded from backup schedule data")
+        }
+        if (backupPayroll && !savedPayrollData) {
+          setMonthlyPayrollData(JSON.parse(backupPayroll))
+          console.log("Loaded from backup payroll data")
+        }
+        if (backupRendered && !savedRenderedDays) {
+          setMonthlyRenderedDays(JSON.parse(backupRendered))
+          console.log("Loaded from backup rendered days")
+        }
+
+        setIsDataLoaded(true)
       } catch (error) {
         console.error("Error loading saved data:", error)
+        setIsDataLoaded(true)
       }
     }
 
@@ -118,20 +150,50 @@ export default function ScheduleEditor() {
   }, [])
 
   useEffect(() => {
-    localStorage.setItem("monthlyScheduleData", JSON.stringify(monthlyScheduleData))
-  }, [monthlyScheduleData])
+    if (!isDataLoaded) return // Don't save until initial data is loaded
+
+    try {
+      localStorage.setItem("monthlyScheduleData", JSON.stringify(monthlyScheduleData))
+      localStorage.setItem("backup_monthlyScheduleData", JSON.stringify(monthlyScheduleData))
+      console.log("Auto-saved schedule data")
+    } catch (error) {
+      console.error("Error saving schedule data:", error)
+    }
+  }, [monthlyScheduleData, isDataLoaded])
 
   useEffect(() => {
-    localStorage.setItem("monthlyPayrollData", JSON.stringify(monthlyPayrollData))
-  }, [monthlyPayrollData])
+    if (!isDataLoaded) return
+
+    try {
+      localStorage.setItem("monthlyPayrollData", JSON.stringify(monthlyPayrollData))
+      localStorage.setItem("backup_monthlyPayrollData", JSON.stringify(monthlyPayrollData))
+      console.log("Auto-saved payroll data")
+    } catch (error) {
+      console.error("Error saving payroll data:", error)
+    }
+  }, [monthlyPayrollData, isDataLoaded])
 
   useEffect(() => {
-    localStorage.setItem("monthlyRenderedDays", JSON.stringify(monthlyRenderedDays))
-  }, [monthlyRenderedDays])
+    if (!isDataLoaded) return
+
+    try {
+      localStorage.setItem("monthlyRenderedDays", JSON.stringify(monthlyRenderedDays))
+      localStorage.setItem("backup_monthlyRenderedDays", JSON.stringify(monthlyRenderedDays))
+      console.log("Auto-saved rendered days")
+    } catch (error) {
+      console.error("Error saving rendered days:", error)
+    }
+  }, [monthlyRenderedDays, isDataLoaded])
 
   useEffect(() => {
-    localStorage.setItem("websiteLogo", logoUrl)
-  }, [logoUrl])
+    if (!isDataLoaded) return
+
+    try {
+      localStorage.setItem("websiteLogo", logoUrl)
+    } catch (error) {
+      console.error("Error saving logo:", error)
+    }
+  }, [logoUrl, isDataLoaded])
 
   useEffect(() => {
     const monthKey = `${selectedMonth}_${selectedYear}`
@@ -355,20 +417,49 @@ export default function ScheduleEditor() {
   )
 
   const saveSchedule = useCallback(() => {
-    const timestamp = new Date().toISOString().split("T")[0]
-    const scheduleKey = `schedule_${selectedMonth}_${selectedYear}_${timestamp}`
+    try {
+      const timestamp = new Date().toISOString().split("T")[0]
+      const scheduleKey = `schedule_${selectedMonth}_${selectedYear}_${timestamp}`
 
-    const saveData = {
-      monthlyScheduleData, // Save all monthly schedule data
-      monthlyPayrollData, // Save all monthly payroll data
-      monthlyRenderedDays, // Save all monthly rendered days
-      currentMonth: selectedMonth,
-      currentYear: selectedYear,
+      const saveData = {
+        monthlyScheduleData,
+        monthlyPayrollData,
+        monthlyRenderedDays,
+        currentMonth: selectedMonth,
+        currentYear: selectedYear,
+        timestamp: new Date().toISOString(),
+      }
+
+      localStorage.setItem(scheduleKey, JSON.stringify(saveData))
+
+      localStorage.setItem("latest_backup", JSON.stringify(saveData))
+
+      alert(
+        `✅ Schedule and payroll data saved successfully!\n\nBackup created: ${scheduleKey}\n\nData includes:\n• ${Object.keys(monthlyScheduleData).length} months of schedule data\n• ${Object.keys(monthlyPayrollData).length} months of payroll data\n• All employee tracking information`,
+      )
+    } catch (error) {
+      console.error("Error saving schedule:", error)
+      alert("❌ Error saving data. Please try again or contact support.")
     }
-
-    localStorage.setItem(scheduleKey, JSON.stringify(saveData))
-    alert(`Schedule and payroll data saved as ${scheduleKey}`)
   }, [monthlyScheduleData, monthlyPayrollData, monthlyRenderedDays, selectedMonth, selectedYear])
+
+  const loadLatestBackup = useCallback(() => {
+    try {
+      const latestBackup = localStorage.getItem("latest_backup")
+      if (latestBackup) {
+        const backupData = JSON.parse(latestBackup)
+        setMonthlyScheduleData(backupData.monthlyScheduleData || {})
+        setMonthlyPayrollData(backupData.monthlyPayrollData || {})
+        setMonthlyRenderedDays(backupData.monthlyRenderedDays || {})
+        alert("✅ Latest backup loaded successfully!")
+      } else {
+        alert("❌ No backup found.")
+      }
+    } catch (error) {
+      console.error("Error loading backup:", error)
+      alert("❌ Error loading backup.")
+    }
+  }, [])
 
   const exportToCSV = useCallback(() => {
     const csvData = []
@@ -688,7 +779,7 @@ export default function ScheduleEditor() {
             ) : (
               <Calendar className="w-8 h-8 text-blue-600" />
             )}
-            <h1 className="text-3xl font-bold text-gray-800">ATRACaaS Shifting Calendar</h1>
+            <h1 className="text-3xl font-bold text-gray-800">ATRACaaS Shifting Schedule</h1>
           </div>
 
           {/* Logo Edit Section */}
@@ -794,13 +885,13 @@ export default function ScheduleEditor() {
         </div>
 
         {/* Gradient Header and Buttons */}
-        <div className="w-full max-w-6xl bg-black text-yellow-300 text-center py-4 rounded-lg mb-6">
+        <div className="w-full max-w-6xl bg-gradient-to-r from-blue-500 to-purple-600 text-white text-center py-4 rounded-lg mb-6">
           <h2 className="text-2xl font-bold uppercase tracking-wide">
             {selectedMonth} {selectedYear}
           </h2>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-center">
           <Button onClick={saveSchedule} className="flex items-center gap-2">
             <Save className="w-4 h-4" />
             Save Schedule
@@ -809,8 +900,18 @@ export default function ScheduleEditor() {
             <Download className="w-4 h-4" />
             Export CSV
           </Button>
+          <Button
+            onClick={loadLatestBackup}
+            variant="outline"
+            className="flex items-center gap-2 bg-transparent text-orange-600 border-orange-600 hover:bg-orange-50"
+          >
+            <Upload className="w-4 h-4" />
+            Load Backup
+          </Button>
         </div>
       </div>
+
+      {/* ... rest of existing code remains the same ... */}
 
       {/* Calendar Grid */}
       <Card className="max-w-6xl mx-auto mb-8">
@@ -857,6 +958,7 @@ export default function ScheduleEditor() {
         </CardContent>
       </Card>
 
+      {/* ... rest of existing payroll section and instructions ... */}
       <Card className="max-w-6xl mx-auto mb-8">
         <CardContent className="p-6">
           <div className="flex justify-between items-center mb-4">
@@ -971,6 +1073,9 @@ export default function ScheduleEditor() {
           <li>• Edit the "Days Rendered" column to track actual attendance</li>
           <li>• Use "Save Schedule" to create a backup export of your data</li>
           <li>• Use "Export CSV" to download both schedule and payroll data</li>
+          <li>
+            • <strong>If data disappears after reload, click "Load Backup" to restore</strong>
+          </li>
         </ul>
       </div>
     </div>
