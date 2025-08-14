@@ -79,6 +79,8 @@ export default function ScheduleEditor() {
   const [monthlyPayrollData, setMonthlyPayrollData] = useState({})
   const [monthlyRenderedDays, setMonthlyRenderedDays] = useState({})
 
+  const [redMarkedNames, setRedMarkedNames] = useState({})
+
   const [newEmployeeName, setNewEmployeeName] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("L2 OJT")
 
@@ -402,40 +404,36 @@ export default function ScheduleEditor() {
 
   const handleCellClick = useCallback(
     (dateKey, timeSlot) => {
-      const cellId = `${dateKey}-${timeSlot}`
+      setEditingCell({ dateKey, timeSlot })
       const currentNames = scheduleData[dateKey]?.[timeSlot]?.names?.join(", ") || ""
-      setEditingCell(cellId)
       setEditValue(currentNames)
     },
     [scheduleData],
   )
 
-  const handleCellSave = useCallback(
-    (dateKey, timeSlot) => {
-      const names = editValue
-        .split(",")
-        .map((name) => name.trim())
-        .filter((name) => name.length > 0)
+  const handleSaveEdit = useCallback(() => {
+    const names = editValue
+      .split(",")
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0)
 
-      const newScheduleData = {
-        ...scheduleData,
-        [dateKey]: {
-          ...scheduleData[dateKey],
-          [timeSlot]: {
-            id: `${dateKey}-${timeSlot}`,
-            names,
-          },
+    const newScheduleData = {
+      ...scheduleData,
+      [editingCell?.dateKey]: {
+        ...scheduleData[editingCell?.dateKey],
+        [editingCell?.timeSlot]: {
+          id: `${editingCell?.dateKey}-${editingCell?.timeSlot}`,
+          names,
         },
-      }
+      },
+    }
 
-      updateCurrentMonthSchedule(newScheduleData)
-      setEditingCell(null)
-      setEditValue("")
-    },
-    [editValue, scheduleData, updateCurrentMonthSchedule],
-  )
+    updateCurrentMonthSchedule(newScheduleData)
+    setEditingCell(null)
+    setEditValue("")
+  }, [editValue, scheduleData, editingCell, updateCurrentMonthSchedule])
 
-  const handleCellCancel = useCallback(() => {
+  const handleCancelEdit = useCallback(() => {
     setEditingCell(null)
     setEditValue("")
   }, [])
@@ -662,36 +660,47 @@ export default function ScheduleEditor() {
     [selectedMonth, selectedYear, getFutureMonthKeys],
   )
 
+  const toggleNameColor = useCallback((dateKey, timeSlot, name, event) => {
+    event.stopPropagation() // Prevent cell editing when clicking on name
+
+    const nameKey = `${dateKey}-${timeSlot}-${name}`
+    setRedMarkedNames((prev) => ({
+      ...prev,
+      [nameKey]: !prev[nameKey],
+    }))
+  }, [])
+
   const renderTimeSlot = (dateKey, timeSlot) => {
-    const cellId = `${dateKey}-${timeSlot}`
-    const isEditing = editingCell === cellId
     const cellData = scheduleData[dateKey]?.[timeSlot]
+    const isEditing = editingCell?.dateKey === dateKey && editingCell?.timeSlot === timeSlot
 
     if (isEditing) {
       return (
-        <div className="p-1 bg-white rounded border">
+        <div className="p-1 mb-1 rounded border bg-white border-blue-400">
+          <div className="text-xs font-medium text-gray-600 mb-1">
+            {timeSlot === "8:00 AM - 4:00 PM"
+              ? "Shift 1"
+              : timeSlot === "4:00 PM - 12:00 AM"
+                ? "Shift 2"
+                : timeSlot === "12:00 AM - 8:00 AM"
+                  ? "Shift 3"
+                  : "Day Off"}
+          </div>
           <Input
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                handleCellSave(dateKey, timeSlot)
+                handleSaveEdit()
               } else if (e.key === "Escape") {
-                handleCellCancel()
+                handleCancelEdit()
               }
             }}
-            className="text-xs h-6"
-            placeholder="Enter names"
+            onBlur={handleSaveEdit}
             autoFocus
+            className="text-xs h-6 p-1"
+            placeholder="Enter names separated by commas"
           />
-          <div className="flex gap-1 mt-1">
-            <Button size="sm" onClick={() => handleCellSave(dateKey, timeSlot)} className="h-5 px-1 text-xs">
-              Save
-            </Button>
-            <Button size="sm" variant="outline" onClick={handleCellCancel} className="h-5 px-1 text-xs bg-transparent">
-              Cancel
-            </Button>
-          </div>
         </div>
       )
     }
@@ -726,11 +735,27 @@ export default function ScheduleEditor() {
                 : "Day Off"}
         </div>
         <div className="text-xs space-y-1">
-          {cellData?.names?.map((name, index) => (
-            <div key={`${dateKey}-${timeSlot}-${name}-${index}`} className="text-blue-700 font-medium truncate">
-              {name}
-            </div>
-          )) || <div className="text-gray-400 italic">Click to assign</div>}
+          {cellData?.names?.map((name, index) => {
+            const isDayOff = timeSlot === "DAY OFF"
+            const nameKey = `${dateKey}-${timeSlot}-${name}`
+            const isRedMarked = redMarkedNames[nameKey]
+
+            return (
+              <div
+                key={`${dateKey}-${timeSlot}-${name}-${index}`}
+                className={`font-medium truncate ${
+                  isDayOff
+                    ? "text-blue-700" // Day off entries remain blue and non-clickable
+                    : isRedMarked
+                      ? "text-red-600 cursor-pointer hover:text-red-800" // Red when marked
+                      : "text-black cursor-pointer hover:text-gray-700" // Black by default
+                }`}
+                onClick={isDayOff ? undefined : (e) => toggleNameColor(dateKey, timeSlot, name, e)}
+              >
+                {name}
+              </div>
+            )
+          }) || <div className="text-gray-400 italic">Click to assign</div>}
         </div>
         <Edit3 className="absolute top-1 right-1 w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
       </div>
@@ -747,6 +772,7 @@ export default function ScheduleEditor() {
               src={
                 PERMANENT_LOGO_URL ||
                 "https://cdn.discordapp.com/attachments/1346110313401155679/1405155664216592384/viber_image_2025-07-30_15-19-42-577.png?ex=689dccb0&is=689c7b30&hm=16262b6f756db6a87987062564aad5a1127b34677704cfd9b72fb74c6e451797&" ||
+                "/placeholder.svg" ||
                 "/placeholder.svg" ||
                 "/placeholder.svg"
               }
