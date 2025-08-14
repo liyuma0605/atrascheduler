@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, Save, Edit3, Plus, Trash2, Upload } from "lucide-react"
 import React from "react"
 
-const PERMANENT_LOGO_URL = "https://cdn.discordapp.com/attachments/1346110313401155679/1405155664216592384/viber_image_2025-07-30_15-19-42-577.png?ex=689dccb0&is=689c7b30&hm=16262b6f756db6a87987062564aad5a1127b34677704cfd9b72fb74c6e451797&"
+const PERMANENT_LOGO_URL =
+  "https://cdn.discordapp.com/attachments/1346110313401155679/1405155664216592384/viber_image_2025-07-30_15-19-42-577.png?ex=689dccb0&is=689c7b30&hm=16262b6f756db6a87987062564aad5a1127b34677704cfd9b72fb74c6e451797&"
 
 const TIME_SLOTS = ["8:00 AM - 4:00 PM", "4:00 PM - 12:00 AM", "12:00 AM - 8:00 AM", "DAY OFF"]
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -62,8 +63,18 @@ export default function ScheduleEditor() {
   const [monthlyScheduleData, setMonthlyScheduleData] = useState({})
   const [editingCell, setEditingCell] = useState(null)
   const [editValue, setEditValue] = useState("")
-  const [selectedMonth, setSelectedMonth] = useState(MONTHS[new Date().getMonth()])
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selectedMonth") || MONTHS[new Date().getMonth()]
+    }
+    return MONTHS[new Date().getMonth()]
+  })
+  const [selectedYear, setSelectedYear] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("selectedYear") || new Date().getFullYear().toString()
+    }
+    return new Date().getFullYear().toString()
+  })
 
   const [monthlyPayrollData, setMonthlyPayrollData] = useState({})
   const [monthlyRenderedDays, setMonthlyRenderedDays] = useState({})
@@ -88,6 +99,20 @@ export default function ScheduleEditor() {
       })
       return initial
     })()
+
+  const sortedPayrollData = useMemo(() => {
+    const sorted = {}
+    const categories = Object.keys(payrollData)
+
+    categories.forEach((category) => {
+      // Sort employees within each category alphabetically
+      sorted[category] = [...payrollData[category]].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" }),
+      )
+    })
+
+    return sorted
+  }, [payrollData])
 
   useEffect(() => {
     const loadSavedData = async () => {
@@ -222,6 +247,18 @@ export default function ScheduleEditor() {
       console.error("Error saving rendered days:", error)
     }
   }, [monthlyRenderedDays, isDataLoaded])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selectedMonth", selectedMonth)
+    }
+  }, [selectedMonth])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("selectedYear", selectedYear)
+    }
+  }, [selectedYear])
 
   const updateCurrentMonthSchedule = useCallback(
     (newScheduleData) => {
@@ -480,7 +517,7 @@ export default function ScheduleEditor() {
     csvData.push(["=== PAYROLL DATA ==="])
     csvData.push(["Category", "Employee Name", "Expected Days", "Days Rendered"])
 
-    Object.entries(payrollData).forEach(([category, employees]) => {
+    Object.entries(sortedPayrollData).forEach(([category, employees]) => {
       employees.forEach((employee) => {
         const expected = calculateExpectedDays[employee] || 0
         const rendered = renderedDays[employee] || 0
@@ -501,7 +538,7 @@ export default function ScheduleEditor() {
       link.click()
       document.body.removeChild(link)
     }
-  }, [scheduleData, renderedDays, calculateExpectedDays, selectedMonth, selectedYear, payrollData])
+  }, [scheduleData, renderedDays, calculateExpectedDays, selectedMonth, selectedYear, sortedPayrollData])
 
   const getFutureMonthKeys = useCallback(() => {
     const currentYear = Number.parseInt(selectedYear)
@@ -707,14 +744,19 @@ export default function ScheduleEditor() {
         <div className="flex flex-col items-center gap-4 mb-6">
           <div className="flex items-center gap-3">
             <img
-              src={PERMANENT_LOGO_URL || "https://cdn.discordapp.com/attachments/1346110313401155679/1405155664216592384/viber_image_2025-07-30_15-19-42-577.png?ex=689dccb0&is=689c7b30&hm=16262b6f756db6a87987062564aad5a1127b34677704cfd9b72fb74c6e451797&"}
+              src={
+                PERMANENT_LOGO_URL ||
+                "https://cdn.discordapp.com/attachments/1346110313401155679/1405155664216592384/viber_image_2025-07-30_15-19-42-577.png?ex=689dccb0&is=689c7b30&hm=16262b6f756db6a87987062564aad5a1127b34677704cfd9b72fb74c6e451797&" ||
+                "/placeholder.svg" ||
+                "/placeholder.svg"
+              }
               alt="Company Logo"
               className="w-12 h-12 object-contain rounded-lg border border-gray-200"
               onError={(e) => {
                 e.target.style.display = "none"
                 const fallbackIcon = document.createElement("div")
                 fallbackIcon.innerHTML =
-                  '<svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>'
+                  '<svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 0-2H6z" clipRule="evenodd"></path></svg>'
                 e.target.parentNode.appendChild(fallbackIcon)
               }}
             />
@@ -836,7 +878,8 @@ export default function ScheduleEditor() {
             <div>
               <h3 className="text-xl font-bold text-gray-800">Employee Payroll Tracking</h3>
               <p className="text-sm text-gray-600 mt-1">
-                Current Month: {selectedMonth} {selectedYear}
+                Current Month: {selectedMonth} {selectedYear} •{" "}
+                <span className="text-green-600 font-medium">Alphabetically Sorted</span>
               </p>
             </div>
 
@@ -886,7 +929,7 @@ export default function ScheduleEditor() {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(payrollData).map(([category, employees]) => (
+                {Object.entries(sortedPayrollData).map(([category, employees]) => (
                   <React.Fragment key={category}>
                     <tr className="bg-yellow-200">
                       <td colSpan={4} className="border border-gray-300 px-4 py-2 font-bold text-center">
@@ -946,6 +989,12 @@ export default function ScheduleEditor() {
           <li>• Use "Export CSV" to download both schedule and payroll data</li>
           <li>
             • <strong>If data disappears after reload, click "Load Backup" to restore</strong>
+          </li>
+          <li>
+            •{" "}
+            <strong>
+              Employee Payroll Tracking table now displays in alphabetical order by category and employee name
+            </strong>
           </li>
         </ul>
       </div>
