@@ -79,7 +79,13 @@ export default function ScheduleEditor() {
   const [monthlyPayrollData, setMonthlyPayrollData] = useState({})
   const [monthlyRenderedDays, setMonthlyRenderedDays] = useState({})
 
-  const [redMarkedNames, setRedMarkedNames] = useState({})
+  const [redMarkedNames, setRedMarkedNames] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("redMarkedNames")
+      return saved ? JSON.parse(saved) : {}
+    }
+    return {}
+  })
 
   const [newEmployeeName, setNewEmployeeName] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("L2 OJT")
@@ -261,6 +267,12 @@ export default function ScheduleEditor() {
       localStorage.setItem("selectedYear", selectedYear)
     }
   }, [selectedYear])
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("redMarkedNames", JSON.stringify(redMarkedNames))
+    }
+  }, [redMarkedNames])
 
   const updateCurrentMonthSchedule = useCallback(
     (newScheduleData) => {
@@ -664,10 +676,15 @@ export default function ScheduleEditor() {
     event.stopPropagation() // Prevent cell editing when clicking on name
 
     const nameKey = `${dateKey}-${timeSlot}-${name}`
-    setRedMarkedNames((prev) => ({
-      ...prev,
-      [nameKey]: !prev[nameKey],
-    }))
+    setRedMarkedNames((prev) => {
+      const newState = {
+        ...prev,
+        [nameKey]: !prev[nameKey],
+      }
+      // Save to localStorage for persistence
+      localStorage.setItem("redMarkedNames", JSON.stringify(newState))
+      return newState
+    })
   }, [])
 
   const renderTimeSlot = (dateKey, timeSlot) => {
@@ -772,6 +789,7 @@ export default function ScheduleEditor() {
               src={
                 PERMANENT_LOGO_URL ||
                 "https://cdn.discordapp.com/attachments/1346110313401155679/1405155664216592384/viber_image_2025-07-30_15-19-42-577.png?ex=689dccb0&is=689c7b30&hm=16262b6f756db6a87987062564aad5a1127b34677704cfd9b72fb74c6e451797&" ||
+                "/placeholder.svg" ||
                 "/placeholder.svg" ||
                 "/placeholder.svg" ||
                 "/placeholder.svg"
