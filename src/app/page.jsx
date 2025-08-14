@@ -72,9 +72,8 @@ export default function ScheduleEditor() {
   const [newEmployeeName, setNewEmployeeName] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("L2 OJT")
 
-  const [logoUrl, setLogoUrl] = useState(ATR_LOGO)
-  const [isEditingLogo, setIsEditingLogo] = useState(false)
-  const [logoInput, setLogoInput] = useState("")
+  // ATR Logo is now permanent and cannot be edited
+  const logoUrl = ATR_LOGO
 
   const currentMonthKey = `${selectedMonth}_${selectedYear}`
 
@@ -507,28 +506,6 @@ export default function ScheduleEditor() {
     [selectedMonth, selectedYear, getFutureMonthKeys],
   )
 
-  const handleLogoSave = useCallback(() => {
-    setLogoUrl(logoInput)
-    setIsEditingLogo(false)
-    setLogoInput("")
-  }, [logoInput])
-
-  const handleLogoCancel = useCallback(() => {
-    setIsEditingLogo(false)
-    setLogoInput("")
-  }, [])
-
-  const handleLogoRemove = useCallback(() => {
-    setLogoUrl("")
-    setIsEditingLogo(false)
-    setLogoInput("")
-  }, [])
-
-  const startEditingLogo = useCallback(() => {
-    setLogoInput(logoUrl)
-    setIsEditingLogo(true)
-  }, [logoUrl])
-
   const renderTimeSlot = (dateKey, timeSlot) => {
     const cellId = `${dateKey}-${timeSlot}`
     const isEditing = editingCell === cellId
@@ -609,84 +586,17 @@ export default function ScheduleEditor() {
       {/* Header Section */}
       <div className="flex flex-col items-center mb-8">
         <div className="flex flex-col items-center gap-4 mb-6">
-          {/* Logo Section */}
+          {/* Logo Section - Permanent ATR & Associates CISO Logo */}
           <div className="flex items-center gap-3">
-            {logoUrl ? (
-              <div className="relative group">
-                <img
-                  src={logoUrl}
-                  alt="ATR & Associates CISO Logo"
-                  className="w-12 h-12 object-contain rounded-lg border border-gray-200"
-                  onError={(e) => {
-                    e.target.style.display = "none"
-                    setLogoUrl(ATR_LOGO)
-                  }}
-                />
-                <Button
-                  onClick={startEditingLogo}
-                  size="sm"
-                  variant="outline"
-                  className="absolute -top-2 -right-2 w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white"
-                >
-                  <Edit3 className="w-3 h-3" />
-                </Button>
-              </div>
-            ) : (
-              <Calendar className="w-8 h-8 text-blue-600" />
-            )}
+            <div className="relative">
+              <img
+                src={logoUrl}
+                alt="ATR & Associates CISO Logo"
+                className="w-16 h-16 object-contain rounded-lg border border-gray-200 shadow-sm"
+              />
+            </div>
             <h1 className="text-3xl font-bold text-gray-800">ATRACaaS Shifting Calendar</h1>
           </div>
-
-          {/* Logo Edit Section */}
-          {isEditingLogo && (
-            <Card className="w-full max-w-md">
-              <CardContent className="p-4">
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-600 block mb-2">Logo URL:</label>
-                    <Input
-                      value={logoInput}
-                      onChange={(e) => setLogoInput(e.target.value)}
-                      placeholder="Enter image URL (e.g., https://example.com/logo.png)"
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div className="flex gap-2 justify-end">
-                    <Button onClick={handleLogoCancel} size="sm" variant="outline">
-                      <X className="w-4 h-4 mr-1" />
-                      Cancel
-                    </Button>
-                    {logoUrl && (
-                      <Button onClick={handleLogoRemove} size="sm" variant="destructive">
-                        <Trash2 className="w-4 h-4 mr-1" />
-                        Remove
-                      </Button>
-                    )}
-                    {logoInput && (
-                      <Button onClick={handleLogoSave} size="sm">
-                        <Save className="w-4 h-4 mr-1" />
-                        Save URL
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Add Logo Button (when no logo exists) */}
-          {!logoUrl && !isEditingLogo && (
-            <Button
-              onClick={() => setIsEditingLogo(true)}
-              size="sm"
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Upload className="w-4 h-4" />
-              Add Logo
-            </Button>
-          )}
         </div>
 
         {/* Month/Year Selectors */}
