@@ -57,7 +57,7 @@ const INITIAL_PAYROLL_DATA = {
 }
 
 // ATR & Associates CISO Logo as base64
-const ATR_LOGO = "https://cdn.discordapp.com/attachments/1346110313401155679/1405155664216592384/viber_image_2025-07-30_15-19-42-577.png?ex=689dccb0&is=689c7b30&hm=16262b6f756db6a87987062564aad5a1127b34677704cfd9b72fb74c6e451797&"
+const ATR_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMDAwMDAwIiByeD0iMTAiLz4KPHN2ZyB4PSIxMCIgeT0iMTAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+CjxkZWZzPgo8c3R5bGU+Cjpob3N0IHsKZm9udC1mYW1pbHk6IEFyaWFsLCBzYW5zLXNlcmlmOwp9Cjwvc3R5bGU+CjwvZGVmcz4KPCEtLSBBVFIgJiBBU1NPQ0lBVEVTIExvZ28gLS0+CjxnIGZpbGw9IiNGRkQ3MDAiPgo8IS0tIEEgU2hhcGUgLS0+CjxwYXRoIGQ9Ik0xNSAyNUwyNSAxNUwzNSAyNUwzMCAzMEwzNSAzNUwyNSA0NUwxNSAzNUwyMCAzMFoiLz4KPHN0cm9rZSBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZT0iI0ZGRDcwMCIgZmlsbD0ibm9uZSIgZD0iTTE4IDI4bDQtNGg2bDQgNHY0aC02bC00LTRaIi8+CjxjaXJjbGUgY3g9IjE1IiBjeT0iMjUiIHI9IjIiLz4KPGNpcmNsZSBjeD0iMzUiIGN5PSIyNSIgcj0iMiIvPgo8Y2lyY2xlIGN4PSIxNSIgY3k9IjM1IiByPSIyIi8+CjxjaXJjbGUgY3g9IjM1IiBjeT0iMzUiIHI9IjIiLz4KPCEtLSBBdHRyYWN0aXZlIFdvb2QgVGV4dHVyZSAtLT4KPHBhdGggZD0iTTQ1IDI1djE1aDE1VjI1SDQ1WiIgZmlsbD0iIzQ0NDQwMCIvPgo8IS0tIFdvb2QgR3JhaW4gLS0+CjxyZWN0IHg9IjQ1IiB5PSIyNiIgd2lkdGg9IjE1IiBoZWlnaHQ9IjIiIGZpbGw9IiNGRkQ3MDAiLz4KPHJlY3QgeD0iNDUiIHk9IjI5IiB3aWR0aD0iMTUiIGhlaWdodD0iMiIgZmlsbD0iI0ZGRDcwMCIvPgo8cmVjdCB4PSI0NSIgeT0iMzIiIHdpZHRoPSIxNSIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZENzAwIi8+CjxyZWN0IHg9IjQ1IiB5PSIzNSIgd2lkdGg9IjE1IiBoZWlnaHQ9IjIiIGZpbGw9IiNGRkQ3MDAiLz4KPHJlY3QgeD0iNDUiIHk9IjM4IiB3aWR0aD0iMTUiIGhlaWdodD0iMiIgZmlsbD0iI0ZGRDcwMCIvPgo8L2c+Cgo8IS0tIFRleHQgLS0+Cjx0ZXh0IHg9IjIiIHk9IjU1IiBmaWxsPSIjRkZENzAwIiBmb250LXNpemU9IjgiIGZvbnQtd2VpZ2h0PSJib2xkIj5BVFIgJmFtcDsgQVNTT0NJQVRFUzwvdGV4dD4KPHR4dCB4PSIyIiB5PSI2NSIgZmlsbD0iI0ZGRDcwMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkNJU088L3RleHQ+Cjx0ZXh0IHg9IjIiIHk9Ijc1IiBmaWxsPSIjRkZENzAwIiBmb250LXNpemU9IjciPmFzIGEgU2VydmljZTwvdGV4dD4KPC9zdmc+Cjwvc3ZnPgo="
 
 export default function ScheduleEditor() {
   const [monthlyScheduleData, setMonthlyScheduleData] = useState({})
@@ -72,8 +72,9 @@ export default function ScheduleEditor() {
   const [newEmployeeName, setNewEmployeeName] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("L2 OJT")
 
-  // ATR Logo is now permanent and cannot be edited
-  const logoUrl = ATR_LOGO
+  const [logoUrl, setLogoUrl] = useState(ATR_LOGO)
+  const [isEditingLogo, setIsEditingLogo] = useState(false)
+  const [logoInput, setLogoInput] = useState("")
 
   const currentMonthKey = `${selectedMonth}_${selectedYear}`
 
@@ -506,6 +507,28 @@ export default function ScheduleEditor() {
     [selectedMonth, selectedYear, getFutureMonthKeys],
   )
 
+  const handleLogoSave = useCallback(() => {
+    setLogoUrl(logoInput)
+    setIsEditingLogo(false)
+    setLogoInput("")
+  }, [logoInput])
+
+  const handleLogoCancel = useCallback(() => {
+    setIsEditingLogo(false)
+    setLogoInput("")
+  }, [])
+
+  const handleLogoRemove = useCallback(() => {
+    setLogoUrl("")
+    setIsEditingLogo(false)
+    setLogoInput("")
+  }, [])
+
+  const startEditingLogo = useCallback(() => {
+    setLogoInput(logoUrl)
+    setIsEditingLogo(true)
+  }, [logoUrl])
+
   const renderTimeSlot = (dateKey, timeSlot) => {
     const cellId = `${dateKey}-${timeSlot}`
     const isEditing = editingCell === cellId
@@ -586,17 +609,84 @@ export default function ScheduleEditor() {
       {/* Header Section */}
       <div className="flex flex-col items-center mb-8">
         <div className="flex flex-col items-center gap-4 mb-6">
-          {/* Logo Section - Permanent ATR & Associates CISO Logo */}
+          {/* Logo Section */}
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <img
-                src={logoUrl}
-                alt="ATR & Associates CISO Logo"
-                className="w-16 h-16 object-contain rounded-lg border border-gray-200 shadow-sm"
-              />
-            </div>
+            {logoUrl ? (
+              <div className="relative group">
+                <img
+                  src={logoUrl}
+                  alt="ATR & Associates CISO Logo"
+                  className="w-12 h-12 object-contain rounded-lg border border-gray-200"
+                  onError={(e) => {
+                    e.target.style.display = "none"
+                    setLogoUrl(ATR_LOGO)
+                  }}
+                />
+                <Button
+                  onClick={startEditingLogo}
+                  size="sm"
+                  variant="outline"
+                  className="absolute -top-2 -right-2 w-6 h-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity bg-white"
+                >
+                  <Edit3 className="w-3 h-3" />
+                </Button>
+              </div>
+            ) : (
+              <Calendar className="w-8 h-8 text-blue-600" />
+            )}
             <h1 className="text-3xl font-bold text-gray-800">ATRACaaS Shifting Calendar</h1>
           </div>
+
+          {/* Logo Edit Section */}
+          {isEditingLogo && (
+            <Card className="w-full max-w-md">
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-600 block mb-2">Logo URL:</label>
+                    <Input
+                      value={logoInput}
+                      onChange={(e) => setLogoInput(e.target.value)}
+                      placeholder="Enter image URL (e.g., https://example.com/logo.png)"
+                      className="w-full"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    <Button onClick={handleLogoCancel} size="sm" variant="outline">
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
+                    {logoUrl && (
+                      <Button onClick={handleLogoRemove} size="sm" variant="destructive">
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Remove
+                      </Button>
+                    )}
+                    {logoInput && (
+                      <Button onClick={handleLogoSave} size="sm">
+                        <Save className="w-4 h-4 mr-1" />
+                        Save URL
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Add Logo Button (when no logo exists) */}
+          {!logoUrl && !isEditingLogo && (
+            <Button
+              onClick={() => setIsEditingLogo(true)}
+              size="sm"
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Add Logo
+            </Button>
+          )}
         </div>
 
         {/* Month/Year Selectors */}
