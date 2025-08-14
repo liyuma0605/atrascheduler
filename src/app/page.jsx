@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Download, Save, Edit3, Calendar, Plus, Trash2, Upload, X } from "lucide-react"
+import { Download, Save, Edit3, Plus, Trash2, Upload } from "lucide-react"
 import React from "react"
+
+const PERMANENT_LOGO_URL = "https://your-company-logo-url.com/logo.png"
 
 const TIME_SLOTS = ["8:00 AM - 4:00 PM", "4:00 PM - 12:00 AM", "12:00 AM - 8:00 AM", "DAY OFF"]
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
@@ -56,9 +58,6 @@ const INITIAL_PAYROLL_DATA = {
   ],
 }
 
-// ATR & Associates CISO Logo as base64
-const ATR_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMDAwMDAwIiByeD0iMTAiLz4KPHN2ZyB4PSIxMCIgeT0iMTAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+CjxkZWZzPgo8c3R5bGU+Cjpob3N0IHsKZm9udC1mYW1pbHk6IEFyaWFsLCBzYW5zLXNlcmlmOwp9Cjwvc3R5bGU+CjwvZGVmcz4KPCEtLSBBVFIgJiBBU1NPQ0lBVEVTIExvZ28gLS0+CjxnIGZpbGw9IiNGRkQ3MDAiPgo8IS0tIEEgU2hhcGUgLS0+CjxwYXRoIGQ9Ik0xNSAyNUwyNSAxNUwzNSAyNUwzMCAzMEwzNSAzNUwyNSA0NUwxNSAzNUwyMCAzMFoiLz4KPHN0cm9rZSBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZT0iI0ZGRDcwMCIgZmlsbD0ibm9uZSIgZD0iTTE4IDI4bDQtNGg2bDQgNHY0aC02bC00LTRaIi8+CjxjaXJjbGUgY3g9IjE1IiBjeT0iMjUiIHI9IjIiLz4KPGNpcmNsZSBjeD0iMzUiIGN5PSIyNSIgcj0iMiIvPgo8Y2lyY2xlIGN4PSIxNSIgY3k9IjM1IiByPSIyIi8+CjxjaXJjbGUgY3g9IjM1IiBjeT0iMzUiIHI9IjIiLz4KPCEtLSBBdHRyYWN0aXZlIFdvb2QgVGV4dHVyZSAtLT4KPHBhdGggZD0iTTQ1IDI1djE1aDE1VjI1SDQ1WiIgZmlsbD0iIzQ0NDQwMCIvPgo8IS0tIFdvb2QgR3JhaW4gLS0+CjxyZWN0IHg9IjQ1IiB5PSIyNiIgd2lkdGg9IjE1IiBoZWlnaHQ9IjIiIGZpbGw9IiNGRkQ3MDAiLz4KPHJlY3QgeD0iNDUiIHk9IjI5IiB3aWR0aD0iMTUiIGhlaWdodD0iMiIgZmlsbD0iI0ZGRDcwMCIvPgo8cmVjdCB4PSI0NSIgeT0iMzIiIHdpZHRoPSIxNSIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZENzAwIi8+CjxyZWN0IHg9IjQ1IiB5PSIzNSIgd2lkdGg9IjE1IiBoZWlnaHQ9IjIiIGZpbGw9IiNGRkQ3MDAiLz4KPHJlY3QgeD0iNDUiIHk9IjM4IiB3aWR0aD0iMTUiIGhlaWdodD0iMiIgZmlsbD0iI0ZGRDcwMCIvPgo8L2c+Cgo8IS0tIFRleHQgLS0+Cjx0ZXh0IHg9IjIiIHk9IjU1IiBmaWxsPSIjRkZENzAwIiBmb250LXNpemU9IjgiIGZvbnQtd2VpZ2h0PSJib2xkIj5BVFIgJmFtcDsgQVNTT0NJQVRFUzwvdGV4dD4KPHR4dCB4PSIyIiB5PSI2NSIgZmlsbD0iI0ZGRDcwMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkNJU088L3RleHQ+Cjx0ZXh0IHg9IjIiIHk9Ijc1IiBmaWxsPSIjRkZENzAwIiBmb250LXNpemU9IjciPmFzIGEgU2VydmljZTwvdGV4dD4KPC9zdmc+Cjwvc3ZnPgo="
-
 export default function ScheduleEditor() {
   const [monthlyScheduleData, setMonthlyScheduleData] = useState({})
   const [editingCell, setEditingCell] = useState(null)
@@ -72,8 +71,7 @@ export default function ScheduleEditor() {
   const [newEmployeeName, setNewEmployeeName] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("L2 OJT")
 
-  // ATR Logo is now permanent and cannot be edited
-  const logoUrl = ATR_LOGO
+  const [isDataLoaded, setIsDataLoaded] = useState(false)
 
   const currentMonthKey = `${selectedMonth}_${selectedYear}`
 
@@ -90,6 +88,140 @@ export default function ScheduleEditor() {
       })
       return initial
     })()
+
+  useEffect(() => {
+    const loadSavedData = async () => {
+      try {
+        console.log("Starting data load process...")
+
+        // Load main data
+        const savedScheduleData = localStorage.getItem("monthlyScheduleData")
+        const savedPayrollData = localStorage.getItem("monthlyPayrollData")
+        const savedRenderedDays = localStorage.getItem("monthlyRenderedDays")
+
+        let scheduleLoaded = false
+        let payrollLoaded = false
+        let renderedLoaded = false
+
+        if (savedScheduleData) {
+          const parsedScheduleData = JSON.parse(savedScheduleData)
+          setMonthlyScheduleData(parsedScheduleData)
+          scheduleLoaded = true
+          console.log("Loaded schedule data:", Object.keys(parsedScheduleData).length, "months")
+        }
+
+        if (savedPayrollData) {
+          const parsedPayrollData = JSON.parse(savedPayrollData)
+          setMonthlyPayrollData(parsedPayrollData)
+          payrollLoaded = true
+          console.log("Loaded payroll data:", Object.keys(parsedPayrollData).length, "months")
+        }
+
+        if (savedRenderedDays) {
+          const parsedRenderedDays = JSON.parse(savedRenderedDays)
+          setMonthlyRenderedDays(parsedRenderedDays)
+          renderedLoaded = true
+          console.log("Loaded rendered days:", Object.keys(parsedRenderedDays).length, "months")
+        }
+
+        // Try backup data if main data failed to load
+        const backupSchedule = localStorage.getItem("backup_monthlyScheduleData")
+        const backupPayroll = localStorage.getItem("backup_monthlyPayrollData")
+        const backupRendered = localStorage.getItem("backup_monthlyRenderedDays")
+
+        if (backupSchedule && !scheduleLoaded) {
+          setMonthlyScheduleData(JSON.parse(backupSchedule))
+          console.log("Loaded from backup schedule data")
+        }
+        if (backupPayroll && !payrollLoaded) {
+          setMonthlyPayrollData(JSON.parse(backupPayroll))
+          console.log("Loaded from backup payroll data")
+        }
+        if (backupRendered && !renderedLoaded) {
+          setMonthlyRenderedDays(JSON.parse(backupRendered))
+          console.log("Loaded from backup rendered days")
+        }
+      } catch (error) {
+        console.error("Error loading saved data:", error)
+      } finally {
+        setIsDataLoaded(true)
+      }
+    }
+
+    loadSavedData()
+  }, [])
+
+  useEffect(() => {
+    if (!isDataLoaded) return // Wait for initial data load
+
+    const monthKey = `${selectedMonth}_${selectedYear}`
+    console.log(`Switching to month: ${monthKey}`)
+
+    // Initialize month data if it doesn't exist
+    if (!monthlyPayrollData[monthKey]) {
+      console.log(`Initializing payroll data for ${monthKey}`)
+      setMonthlyPayrollData((prev) => ({
+        ...prev,
+        [monthKey]: { ...INITIAL_PAYROLL_DATA },
+      }))
+
+      const initialRendered = {}
+      Object.entries(INITIAL_PAYROLL_DATA).forEach(([category, employees]) => {
+        employees.forEach((employee) => {
+          initialRendered[employee] = 0
+        })
+      })
+
+      setMonthlyRenderedDays((prev) => ({
+        ...prev,
+        [monthKey]: initialRendered,
+      }))
+    }
+
+    if (!monthlyScheduleData[monthKey]) {
+      console.log(`Initializing schedule data for ${monthKey}`)
+      setMonthlyScheduleData((prev) => ({
+        ...prev,
+        [monthKey]: createInitialCalendarData(),
+      }))
+    }
+  }, [selectedMonth, selectedYear, monthlyPayrollData, monthlyScheduleData, isDataLoaded])
+
+  useEffect(() => {
+    if (!isDataLoaded) return // Don't save until initial data is loaded
+
+    try {
+      localStorage.setItem("monthlyScheduleData", JSON.stringify(monthlyScheduleData))
+      localStorage.setItem("backup_monthlyScheduleData", JSON.stringify(monthlyScheduleData))
+      console.log("Auto-saved schedule data")
+    } catch (error) {
+      console.error("Error saving schedule data:", error)
+    }
+  }, [monthlyScheduleData, isDataLoaded])
+
+  useEffect(() => {
+    if (!isDataLoaded) return
+
+    try {
+      localStorage.setItem("monthlyPayrollData", JSON.stringify(monthlyPayrollData))
+      localStorage.setItem("backup_monthlyPayrollData", JSON.stringify(monthlyPayrollData))
+      console.log("Auto-saved payroll data")
+    } catch (error) {
+      console.error("Error saving payroll data:", error)
+    }
+  }, [monthlyPayrollData, isDataLoaded])
+
+  useEffect(() => {
+    if (!isDataLoaded) return
+
+    try {
+      localStorage.setItem("monthlyRenderedDays", JSON.stringify(monthlyRenderedDays))
+      localStorage.setItem("backup_monthlyRenderedDays", JSON.stringify(monthlyRenderedDays))
+      console.log("Auto-saved rendered days")
+    } catch (error) {
+      console.error("Error saving rendered days:", error)
+    }
+  }, [monthlyRenderedDays, isDataLoaded])
 
   const updateCurrentMonthSchedule = useCallback(
     (newScheduleData) => {
@@ -120,37 +252,6 @@ export default function ScheduleEditor() {
     },
     [currentMonthKey],
   )
-
-  useEffect(() => {
-    const monthKey = `${selectedMonth}_${selectedYear}`
-
-    // Initialize month data if it doesn't exist
-    if (!monthlyPayrollData[monthKey]) {
-      setMonthlyPayrollData((prev) => ({
-        ...prev,
-        [monthKey]: { ...INITIAL_PAYROLL_DATA },
-      }))
-
-      const initialRendered = {}
-      Object.entries(INITIAL_PAYROLL_DATA).forEach(([category, employees]) => {
-        employees.forEach((employee) => {
-          initialRendered[employee] = 0
-        })
-      })
-
-      setMonthlyRenderedDays((prev) => ({
-        ...prev,
-        [monthKey]: initialRendered,
-      }))
-    }
-
-    if (!monthlyScheduleData[monthKey]) {
-      setMonthlyScheduleData((prev) => ({
-        ...prev,
-        [monthKey]: createInitialCalendarData(),
-      }))
-    }
-  }, [selectedMonth, selectedYear, monthlyPayrollData, monthlyScheduleData])
 
   useEffect(() => {
     const currentRendered = monthlyRenderedDays[currentMonthKey] || {}
@@ -314,31 +415,49 @@ export default function ScheduleEditor() {
   )
 
   const saveSchedule = useCallback(() => {
-    const timestamp = new Date().toISOString().split("T")[0]
-    
-    const saveData = {
-      monthlyScheduleData,
-      monthlyPayrollData,
-      monthlyRenderedDays,
-      currentMonth: selectedMonth,
-      currentYear: selectedYear,
-      timestamp: new Date().toISOString(),
+    try {
+      const timestamp = new Date().toISOString().split("T")[0]
+      const scheduleKey = `schedule_${selectedMonth}_${selectedYear}_${timestamp}`
+
+      const saveData = {
+        monthlyScheduleData,
+        monthlyPayrollData,
+        monthlyRenderedDays,
+        currentMonth: selectedMonth,
+        currentYear: selectedYear,
+        timestamp: new Date().toISOString(),
+      }
+
+      localStorage.setItem(scheduleKey, JSON.stringify(saveData))
+
+      localStorage.setItem("latest_backup", JSON.stringify(saveData))
+
+      alert(
+        `✅ Schedule and payroll data saved successfully!\n\nBackup created: ${scheduleKey}\n\nData includes:\n• ${Object.keys(monthlyScheduleData).length} months of schedule data\n• ${Object.keys(monthlyPayrollData).length} months of payroll data\n• All employee tracking information`,
+      )
+    } catch (error) {
+      console.error("Error saving schedule:", error)
+      alert("❌ Error saving data. Please try again or contact support.")
     }
-
-    // In a real application, this would save to a backend or download as file
-    const jsonData = JSON.stringify(saveData, null, 2)
-    const blob = new Blob([jsonData], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `schedule_backup_${selectedMonth}_${selectedYear}_${timestamp}.json`
-    link.click()
-    URL.revokeObjectURL(url)
-
-    alert(
-      `✅ Schedule and payroll data saved as download!\n\nBackup created: schedule_backup_${selectedMonth}_${selectedYear}_${timestamp}.json\n\nData includes:\n• ${Object.keys(monthlyScheduleData).length} months of schedule data\n• ${Object.keys(monthlyPayrollData).length} months of payroll data\n• All employee tracking information`,
-    )
   }, [monthlyScheduleData, monthlyPayrollData, monthlyRenderedDays, selectedMonth, selectedYear])
+
+  const loadLatestBackup = useCallback(() => {
+    try {
+      const latestBackup = localStorage.getItem("latest_backup")
+      if (latestBackup) {
+        const backupData = JSON.parse(latestBackup)
+        setMonthlyScheduleData(backupData.monthlyScheduleData || {})
+        setMonthlyPayrollData(backupData.monthlyPayrollData || {})
+        setMonthlyRenderedDays(backupData.monthlyRenderedDays || {})
+        alert("✅ Latest backup loaded successfully!")
+      } else {
+        alert("❌ No backup found.")
+      }
+    } catch (error) {
+      console.error("Error loading backup:", error)
+      alert("❌ Error loading backup.")
+    }
+  }, [])
 
   const exportToCSV = useCallback(() => {
     const csvData = []
@@ -586,15 +705,19 @@ export default function ScheduleEditor() {
       {/* Header Section */}
       <div className="flex flex-col items-center mb-8">
         <div className="flex flex-col items-center gap-4 mb-6">
-          {/* Logo Section - Permanent ATR & Associates CISO Logo */}
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <img
-                src={logoUrl}
-                alt="ATR & Associates CISO Logo"
-                className="w-16 h-16 object-contain rounded-lg border border-gray-200 shadow-sm"
-              />
-            </div>
+            <img
+              src={PERMANENT_LOGO_URL || "https://cdn.discordapp.com/attachments/1346110313401155679/1405155664216592384/viber_image_2025-07-30_15-19-42-577.png?ex=689dccb0&is=689c7b30&hm=16262b6f756db6a87987062564aad5a1127b34677704cfd9b72fb74c6e451797&"}
+              alt="Company Logo"
+              className="w-12 h-12 object-contain rounded-lg border border-gray-200"
+              onError={(e) => {
+                e.target.style.display = "none"
+                const fallbackIcon = document.createElement("div")
+                fallbackIcon.innerHTML =
+                  '<svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"></path></svg>'
+                e.target.parentNode.appendChild(fallbackIcon)
+              }}
+            />
             <h1 className="text-3xl font-bold text-gray-800">ATRACaaS Shifting Calendar</h1>
           </div>
         </div>
@@ -649,6 +772,14 @@ export default function ScheduleEditor() {
           <Button onClick={exportToCSV} variant="outline" className="flex items-center gap-2 bg-transparent">
             <Download className="w-4 h-4" />
             Export CSV
+          </Button>
+          <Button
+            onClick={loadLatestBackup}
+            variant="outline"
+            className="flex items-center gap-2 bg-transparent text-orange-600 border-orange-600 hover:bg-orange-50"
+          >
+            <Upload className="w-4 h-4" />
+            Load Backup
           </Button>
         </div>
       </div>
@@ -802,19 +933,19 @@ export default function ScheduleEditor() {
         <ul className="text-sm space-y-1 text-gray-600">
           <li>• Select month and year from the dropdowns above</li>
           <li>
-            • <strong>All data is stored in memory during your session</strong>
+            • <strong>All data is automatically saved and preserved when switching months</strong>
           </li>
           <li>• Each month/year has its own separate schedule and payroll tracking record</li>
-          <li>• Switching between months preserves your data within the current session</li>
+          <li>• Returning to a previous month will restore all your data exactly as you left it</li>
           <li>• Click on any time slot within a day to edit assignments</li>
           <li>• Enter multiple names separated by commas</li>
           <li>• Press Enter to save or Escape to cancel</li>
           <li>• Expected days are automatically calculated from calendar assignments (excluding Day Off)</li>
           <li>• Edit the "Days Rendered" column to track actual attendance</li>
-          <li>• Use "Save Schedule" to download a backup JSON file of your data</li>
-          <li>• Use "Export CSV" to download both schedule and payroll data as CSV</li>
+          <li>• Use "Save Schedule" to create a backup export of your data</li>
+          <li>• Use "Export CSV" to download both schedule and payroll data</li>
           <li>
-            • <strong>Note: Data will be lost when you refresh or close the browser</strong>
+            • <strong>If data disappears after reload, click "Load Backup" to restore</strong>
           </li>
         </ul>
       </div>
