@@ -56,9 +56,6 @@ const INITIAL_PAYROLL_DATA = {
   ],
 }
 
-// ATR & Associates CISO Logo as base64
-const ATR_LOGO = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiBmaWxsPSIjMDAwMDAwIiByeD0iMTAiLz4KPHN2ZyB4PSIxMCIgeT0iMTAiIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCI+CjxkZWZzPgo8c3R5bGU+Cjpob3N0IHsKZm9udC1mYW1pbHk6IEFyaWFsLCBzYW5zLXNlcmlmOwp9Cjwvc3R5bGU+CjwvZGVmcz4KPCEtLSBBVFIgJiBBU1NPQ0lBVEVTIExvZ28gLS0+CjxnIGZpbGw9IiNGRkQ3MDAiPgo8IS0tIEEgU2hhcGUgLS0+CjxwYXRoIGQ9Ik0xNSAyNUwyNSAxNUwzNSAyNUwzMCAzMEwzNSAzNUwyNSA0NUwxNSAzNUwyMCAzMFoiLz4KPHN0cm9rZSBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZT0iI0ZGRDcwMCIgZmlsbD0ibm9uZSIgZD0iTTE4IDI4bDQtNGg2bDQgNHY0aC02bC00LTRaIi8+CjxjaXJjbGUgY3g9IjE1IiBjeT0iMjUiIHI9IjIiLz4KPGNpcmNsZSBjeD0iMzUiIGN5PSIyNSIgcj0iMiIvPgo8Y2lyY2xlIGN4PSIxNSIgY3k9IjM1IiByPSIyIi8+CjxjaXJjbGUgY3g9IjM1IiBjeT0iMzUiIHI9IjIiLz4KPCEtLSBBdHRyYWN0aXZlIFdvb2QgVGV4dHVyZSAtLT4KPHBhdGggZD0iTTQ1IDI1djE1aDE1VjI1SDQ1WiIgZmlsbD0iIzQ0NDQwMCIvPgo8IS0tIFdvb2QgR3JhaW4gLS0+CjxyZWN0IHg9IjQ1IiB5PSIyNiIgd2lkdGg9IjE1IiBoZWlnaHQ9IjIiIGZpbGw9IiNGRkQ3MDAiLz4KPHJlY3QgeD0iNDUiIHk9IjI5IiB3aWR0aD0iMTUiIGhlaWdodD0iMiIgZmlsbD0iI0ZGRDcwMCIvPgo8cmVjdCB4PSI0NSIgeT0iMzIiIHdpZHRoPSIxNSIgaGVpZ2h0PSIyIiBmaWxsPSIjRkZENzAwIi8+CjxyZWN0IHg9IjQ1IiB5PSIzNSIgd2lkdGg9IjE1IiBoZWlnaHQ9IjIiIGZpbGw9IiNGRkQ3MDAiLz4KPHJlY3QgeD0iNDUiIHk9IjM4IiB3aWR0aD0iMTUiIGhlaWdodD0iMiIgZmlsbD0iI0ZGRDcwMCIvPgo8L2c+Cgo8IS0tIFRleHQgLS0+Cjx0ZXh0IHg9IjIiIHk9IjU1IiBmaWxsPSIjRkZENzAwIiBmb250LXNpemU9IjgiIGZvbnQtd2VpZ2h0PSJib2xkIj5BVFIgJmFtcDsgQVNTT0NJQVRFUzwvdGV4dD4KPHR4dCB4PSIyIiB5PSI2NSIgZmlsbD0iI0ZGRDcwMCIgZm9udC1zaXplPSIxNCIgZm9udC13ZWlnaHQ9ImJvbGQiPkNJU088L3RleHQ+Cjx0ZXh0IHg9IjIiIHk9Ijc1IiBmaWxsPSIjRkZENzAwIiBmb250LXNpemU9IjciPmFzIGEgU2VydmljZTwvdGV4dD4KPC9zdmc+Cjwvc3ZnPgo="
-
 export default function ScheduleEditor() {
   const [monthlyScheduleData, setMonthlyScheduleData] = useState({})
   const [editingCell, setEditingCell] = useState(null)
@@ -72,9 +69,11 @@ export default function ScheduleEditor() {
   const [newEmployeeName, setNewEmployeeName] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("L2 OJT")
 
-  const [logoUrl, setLogoUrl] = useState(ATR_LOGO)
+  const [logoUrl, setLogoUrl] = useState("")
   const [isEditingLogo, setIsEditingLogo] = useState(false)
   const [logoInput, setLogoInput] = useState("")
+
+  const [isDataLoaded, setIsDataLoaded] = useState(false)
 
   const currentMonthKey = `${selectedMonth}_${selectedYear}`
 
@@ -91,6 +90,160 @@ export default function ScheduleEditor() {
       })
       return initial
     })()
+
+  useEffect(() => {
+    const loadSavedData = async () => {
+      try {
+        console.log("Starting data load process...")
+
+        // Load main data
+        const savedScheduleData = localStorage.getItem("monthlyScheduleData")
+        const savedPayrollData = localStorage.getItem("monthlyPayrollData")
+        const savedRenderedDays = localStorage.getItem("monthlyRenderedDays")
+        const savedLogo = localStorage.getItem("websiteLogo")
+
+        let scheduleLoaded = false
+        let payrollLoaded = false
+        let renderedLoaded = false
+
+        if (savedScheduleData) {
+          const parsedScheduleData = JSON.parse(savedScheduleData)
+          setMonthlyScheduleData(parsedScheduleData)
+          scheduleLoaded = true
+          console.log("Loaded schedule data:", Object.keys(parsedScheduleData).length, "months")
+        }
+
+        if (savedPayrollData) {
+          const parsedPayrollData = JSON.parse(savedPayrollData)
+          setMonthlyPayrollData(parsedPayrollData)
+          payrollLoaded = true
+          console.log("Loaded payroll data:", Object.keys(parsedPayrollData).length, "months")
+        }
+
+        if (savedRenderedDays) {
+          const parsedRenderedDays = JSON.parse(savedRenderedDays)
+          setMonthlyRenderedDays(parsedRenderedDays)
+          renderedLoaded = true
+          console.log("Loaded rendered days:", Object.keys(parsedRenderedDays).length, "months")
+        }
+
+        if (savedLogo) {
+          setLogoUrl(savedLogo)
+          console.log("Loaded logo")
+        }
+
+        // Try backup data if main data failed to load
+        const backupSchedule = localStorage.getItem("backup_monthlyScheduleData")
+        const backupPayroll = localStorage.getItem("backup_monthlyPayrollData")
+        const backupRendered = localStorage.getItem("backup_monthlyRenderedDays")
+
+        if (backupSchedule && !scheduleLoaded) {
+          setMonthlyScheduleData(JSON.parse(backupSchedule))
+          console.log("Loaded from backup schedule data")
+        }
+        if (backupPayroll && !payrollLoaded) {
+          setMonthlyPayrollData(JSON.parse(backupPayroll))
+          console.log("Loaded from backup payroll data")
+        }
+        if (backupRendered && !renderedLoaded) {
+          setMonthlyRenderedDays(JSON.parse(backupRendered))
+          console.log("Loaded from backup rendered days")
+        }
+
+        setTimeout(() => {
+          setIsDataLoaded(true)
+          console.log("Data loading completed - all changes should now be visible")
+        }, 100)
+      } catch (error) {
+        console.error("Error loading saved data:", error)
+        setIsDataLoaded(true)
+      }
+    }
+
+    loadSavedData()
+  }, [])
+
+  useEffect(() => {
+    if (!isDataLoaded) return // Wait for initial data load
+
+    const monthKey = `${selectedMonth}_${selectedYear}`
+    console.log(`Switching to month: ${monthKey}`)
+
+    // Initialize month data if it doesn't exist
+    if (!monthlyPayrollData[monthKey]) {
+      console.log(`Initializing payroll data for ${monthKey}`)
+      setMonthlyPayrollData((prev) => ({
+        ...prev,
+        [monthKey]: { ...INITIAL_PAYROLL_DATA },
+      }))
+
+      const initialRendered = {}
+      Object.entries(INITIAL_PAYROLL_DATA).forEach(([category, employees]) => {
+        employees.forEach((employee) => {
+          initialRendered[employee] = 0
+        })
+      })
+
+      setMonthlyRenderedDays((prev) => ({
+        ...prev,
+        [monthKey]: initialRendered,
+      }))
+    }
+
+    if (!monthlyScheduleData[monthKey]) {
+      console.log(`Initializing schedule data for ${monthKey}`)
+      setMonthlyScheduleData((prev) => ({
+        ...prev,
+        [monthKey]: createInitialCalendarData(),
+      }))
+    }
+  }, [selectedMonth, selectedYear, monthlyPayrollData, monthlyScheduleData, isDataLoaded])
+
+  useEffect(() => {
+    if (!isDataLoaded) return // Don't save until initial data is loaded
+
+    try {
+      localStorage.setItem("monthlyScheduleData", JSON.stringify(monthlyScheduleData))
+      localStorage.setItem("backup_monthlyScheduleData", JSON.stringify(monthlyScheduleData))
+      console.log("Auto-saved schedule data")
+    } catch (error) {
+      console.error("Error saving schedule data:", error)
+    }
+  }, [monthlyScheduleData, isDataLoaded])
+
+  useEffect(() => {
+    if (!isDataLoaded) return
+
+    try {
+      localStorage.setItem("monthlyPayrollData", JSON.stringify(monthlyPayrollData))
+      localStorage.setItem("backup_monthlyPayrollData", JSON.stringify(monthlyPayrollData))
+      console.log("Auto-saved payroll data")
+    } catch (error) {
+      console.error("Error saving payroll data:", error)
+    }
+  }, [monthlyPayrollData, isDataLoaded])
+
+  useEffect(() => {
+    if (!isDataLoaded) return
+
+    try {
+      localStorage.setItem("monthlyRenderedDays", JSON.stringify(monthlyRenderedDays))
+      localStorage.setItem("backup_monthlyRenderedDays", JSON.stringify(monthlyRenderedDays))
+      console.log("Auto-saved rendered days")
+    } catch (error) {
+      console.error("Error saving rendered days:", error)
+    }
+  }, [monthlyRenderedDays, isDataLoaded])
+
+  useEffect(() => {
+    if (!isDataLoaded) return
+
+    try {
+      localStorage.setItem("websiteLogo", logoUrl)
+    } catch (error) {
+      console.error("Error saving logo:", error)
+    }
+  }, [logoUrl, isDataLoaded])
 
   const updateCurrentMonthSchedule = useCallback(
     (newScheduleData) => {
@@ -121,37 +274,6 @@ export default function ScheduleEditor() {
     },
     [currentMonthKey],
   )
-
-  useEffect(() => {
-    const monthKey = `${selectedMonth}_${selectedYear}`
-
-    // Initialize month data if it doesn't exist
-    if (!monthlyPayrollData[monthKey]) {
-      setMonthlyPayrollData((prev) => ({
-        ...prev,
-        [monthKey]: { ...INITIAL_PAYROLL_DATA },
-      }))
-
-      const initialRendered = {}
-      Object.entries(INITIAL_PAYROLL_DATA).forEach(([category, employees]) => {
-        employees.forEach((employee) => {
-          initialRendered[employee] = 0
-        })
-      })
-
-      setMonthlyRenderedDays((prev) => ({
-        ...prev,
-        [monthKey]: initialRendered,
-      }))
-    }
-
-    if (!monthlyScheduleData[monthKey]) {
-      setMonthlyScheduleData((prev) => ({
-        ...prev,
-        [monthKey]: createInitialCalendarData(),
-      }))
-    }
-  }, [selectedMonth, selectedYear, monthlyPayrollData, monthlyScheduleData])
 
   useEffect(() => {
     const currentRendered = monthlyRenderedDays[currentMonthKey] || {}
@@ -315,31 +437,49 @@ export default function ScheduleEditor() {
   )
 
   const saveSchedule = useCallback(() => {
-    const timestamp = new Date().toISOString().split("T")[0]
-    
-    const saveData = {
-      monthlyScheduleData,
-      monthlyPayrollData,
-      monthlyRenderedDays,
-      currentMonth: selectedMonth,
-      currentYear: selectedYear,
-      timestamp: new Date().toISOString(),
+    try {
+      const timestamp = new Date().toISOString().split("T")[0]
+      const scheduleKey = `schedule_${selectedMonth}_${selectedYear}_${timestamp}`
+
+      const saveData = {
+        monthlyScheduleData,
+        monthlyPayrollData,
+        monthlyRenderedDays,
+        currentMonth: selectedMonth,
+        currentYear: selectedYear,
+        timestamp: new Date().toISOString(),
+      }
+
+      localStorage.setItem(scheduleKey, JSON.stringify(saveData))
+
+      localStorage.setItem("latest_backup", JSON.stringify(saveData))
+
+      alert(
+        `✅ Schedule and payroll data saved successfully!\n\nBackup created: ${scheduleKey}\n\nData includes:\n• ${Object.keys(monthlyScheduleData).length} months of schedule data\n• ${Object.keys(monthlyPayrollData).length} months of payroll data\n• All employee tracking information`,
+      )
+    } catch (error) {
+      console.error("Error saving schedule:", error)
+      alert("❌ Error saving data. Please try again or contact support.")
     }
-
-    // In a real application, this would save to a backend or download as file
-    const jsonData = JSON.stringify(saveData, null, 2)
-    const blob = new Blob([jsonData], { type: "application/json" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `schedule_backup_${selectedMonth}_${selectedYear}_${timestamp}.json`
-    link.click()
-    URL.revokeObjectURL(url)
-
-    alert(
-      `✅ Schedule and payroll data saved as download!\n\nBackup created: schedule_backup_${selectedMonth}_${selectedYear}_${timestamp}.json\n\nData includes:\n• ${Object.keys(monthlyScheduleData).length} months of schedule data\n• ${Object.keys(monthlyPayrollData).length} months of payroll data\n• All employee tracking information`,
-    )
   }, [monthlyScheduleData, monthlyPayrollData, monthlyRenderedDays, selectedMonth, selectedYear])
+
+  const loadLatestBackup = useCallback(() => {
+    try {
+      const latestBackup = localStorage.getItem("latest_backup")
+      if (latestBackup) {
+        const backupData = JSON.parse(latestBackup)
+        setMonthlyScheduleData(backupData.monthlyScheduleData || {})
+        setMonthlyPayrollData(backupData.monthlyPayrollData || {})
+        setMonthlyRenderedDays(backupData.monthlyRenderedDays || {})
+        alert("✅ Latest backup loaded successfully!")
+      } else {
+        alert("❌ No backup found.")
+      }
+    } catch (error) {
+      console.error("Error loading backup:", error)
+      alert("❌ Error loading backup.")
+    }
+  }, [])
 
   const exportToCSV = useCallback(() => {
     const csvData = []
@@ -507,6 +647,31 @@ export default function ScheduleEditor() {
     [selectedMonth, selectedYear, getFutureMonthKeys],
   )
 
+  const handleFileUpload = useCallback((event) => {
+    const file = event.target.files[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file (PNG, JPG, GIF, etc.)")
+        return
+      }
+
+      // Validate file size (limit to 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        alert("File size must be less than 2MB")
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const dataUrl = e.target.result
+        setLogoUrl(dataUrl)
+        setIsEditingLogo(false)
+      }
+      reader.readAsDataURL(file)
+    }
+  }, [])
+
   const handleLogoSave = useCallback(() => {
     setLogoUrl(logoInput)
     setIsEditingLogo(false)
@@ -614,12 +779,12 @@ export default function ScheduleEditor() {
             {logoUrl ? (
               <div className="relative group">
                 <img
-                  src={logoUrl}
-                  alt="ATR & Associates CISO Logo"
+                  src={logoUrl || "/placeholder.svg"}
+                  alt="Website Logo"
                   className="w-12 h-12 object-contain rounded-lg border border-gray-200"
                   onError={(e) => {
                     e.target.style.display = "none"
-                    setLogoUrl(ATR_LOGO)
+                    setLogoUrl("")
                   }}
                 />
                 <Button
@@ -643,6 +808,21 @@ export default function ScheduleEditor() {
               <CardContent className="p-4">
                 <div className="space-y-4">
                   <div>
+                    <label className="text-sm font-medium text-gray-600 block mb-2">Upload Image File:</label>
+                    <div className="flex items-center gap-2">
+                      <Input type="file" accept="image/*" onChange={handleFileUpload} className="w-full" />
+                      <Upload className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">Max size: 2MB. Supported: PNG, JPG, GIF, etc.</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                    <span className="text-xs text-gray-500">OR</span>
+                    <div className="flex-1 h-px bg-gray-300"></div>
+                  </div>
+
+                  <div>
                     <label className="text-sm font-medium text-gray-600 block mb-2">Logo URL:</label>
                     <Input
                       value={logoInput}
@@ -652,4 +832,270 @@ export default function ScheduleEditor() {
                     />
                   </div>
 
-                  <div className="flex gap
+                  <div className="flex gap-2 justify-end">
+                    <Button onClick={handleLogoCancel} size="sm" variant="outline">
+                      <X className="w-4 h-4 mr-1" />
+                      Cancel
+                    </Button>
+                    {logoUrl && (
+                      <Button onClick={handleLogoRemove} size="sm" variant="destructive">
+                        <Trash2 className="w-4 h-4 mr-1" />
+                        Remove
+                      </Button>
+                    )}
+                    {logoInput && (
+                      <Button onClick={handleLogoSave} size="sm">
+                        <Save className="w-4 h-4 mr-1" />
+                        Save URL
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Add Logo Button (when no logo exists) */}
+          {!logoUrl && !isEditingLogo && (
+            <Button
+              onClick={() => setIsEditingLogo(true)}
+              size="sm"
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" />
+              Add Logo
+            </Button>
+          )}
+        </div>
+
+        {/* Month/Year Selectors */}
+        <div className="flex items-center gap-6 mb-6">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-600">Month:</label>
+            <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MONTHS.map((month) => (
+                  <SelectItem key={month} value={month}>
+                    {month}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-600">Year:</label>
+            <Select value={selectedYear} onValueChange={setSelectedYear}>
+              <SelectTrigger className="w-20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {YEARS.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Gradient Header and Buttons */}
+        <div className="w-full max-w-6xl bg-black text-yellow-300 text-center py-4 rounded-lg mb-6">
+          <h2 className="text-2xl font-bold uppercase tracking-wide">
+            {selectedMonth} {selectedYear}
+          </h2>
+        </div>
+
+        <div className="flex gap-2 flex-wrap justify-center">
+          <Button onClick={saveSchedule} className="flex items-center gap-2">
+            <Save className="w-4 h-4" />
+            Save Schedule
+          </Button>
+          <Button onClick={exportToCSV} variant="outline" className="flex items-center gap-2 bg-transparent">
+            <Download className="w-4 h-4" />
+            Export CSV
+          </Button>
+          <Button
+            onClick={loadLatestBackup}
+            variant="outline"
+            className="flex items-center gap-2 bg-transparent text-orange-600 border-orange-600 hover:bg-orange-50"
+          >
+            <Upload className="w-4 h-4" />
+            Load Backup
+          </Button>
+        </div>
+      </div>
+
+      {/* Calendar Grid */}
+      <Card className="max-w-6xl mx-auto mb-8">
+        <CardContent className="p-0">
+          {/* Days of Week Header */}
+          <div className="grid grid-cols-7 bg-gray-600">
+            {DAYS_OF_WEEK.map((day) => (
+              <div
+                key={day}
+                className="p-3 text-center font-semibold text-white border-r border-gray-500 last:border-r-0"
+              >
+                {day.toUpperCase()}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendar Days */}
+          <div className="grid grid-cols-7">
+            {calendarDays.map((dayData, index) => (
+              <div
+                key={dayData?.dateKey || `empty-${index}`}
+                className="min-h-[200px] border-r border-b border-gray-300 last:border-r-0 bg-white"
+              >
+                {dayData ? (
+                  <div className="p-2">
+                    {/* Day Number */}
+                    <div className="text-sm font-bold text-gray-700 mb-2 text-center bg-gray-100 rounded px-2 py-1">
+                      {dayData.day}
+                    </div>
+
+                    {/* Time Slots */}
+                    <div className="space-y-1">
+                      {TIME_SLOTS.map((timeSlot) => (
+                        <div key={`${dayData.dateKey}-${timeSlot}`}>{renderTimeSlot(dayData.dateKey, timeSlot)}</div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 h-full"></div>
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Employee Payroll Tracking */}
+      <Card className="max-w-6xl mx-auto mb-8">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="text-xl font-bold text-gray-800">Employee Payroll Tracking</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Current Month: {selectedMonth} {selectedYear}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.keys(payrollData).map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Input
+                placeholder="Employee name"
+                value={newEmployeeName}
+                onChange={(e) => setNewEmployeeName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    addEmployee()
+                  }
+                }}
+                className="w-40"
+              />
+
+              <Button onClick={addEmployee} size="sm" className="flex items-center gap-1">
+                <Plus className="w-4 h-4" />
+                Add
+              </Button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-gray-300">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 px-4 py-2 text-left font-semibold">Employee Name</th>
+                  <th className="border border-gray-300 px-4 py-2 text-center font-semibold">
+                    Expected Number of Days (Schedule)
+                  </th>
+                  <th className="border border-gray-300 px-4 py-2 text-center font-semibold">Days Rendered</th>
+                  <th className="border border-gray-300 px-4 py-2 text-center font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(payrollData).map(([category, employees]) => (
+                  <React.Fragment key={category}>
+                    <tr className="bg-yellow-200">
+                      <td colSpan={4} className="border border-gray-300 px-4 py-2 font-bold text-center">
+                        {category}
+                      </td>
+                    </tr>
+                    {employees.map((employee, index) => (
+                      <tr key={`${category}-${employee}-${index}`} className="hover:bg-gray-50">
+                        <td className="border border-gray-300 px-4 py-2">{employee}</td>
+                        <td className="border border-gray-300 px-4 py-2 text-center font-semibold text-blue-600">
+                          {calculateExpectedDays[employee] || 0}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2 text-center">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={renderedDays[employee] || 0}
+                            onChange={(e) => handleRenderedDaysChange(employee, e.target.value)}
+                            className="w-16 h-8 text-center mx-auto"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2 text-center">
+                          <Button
+                            onClick={() => removeEmployee(category, employee)}
+                            size="sm"
+                            variant="destructive"
+                            className="h-6 w-6 p-0"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg max-w-6xl mx-auto">
+        <h3 className="font-semibold mb-2">Instructions:</h3>
+        <ul className="text-sm space-y-1 text-gray-600">
+          <li>• Select month and year from the dropdowns above</li>
+          <li>
+            • <strong>All data is automatically saved and preserved when switching months</strong>
+          </li>
+          <li>• Each month/year has its own separate schedule and payroll tracking record</li>
+          <li>• Returning to a previous month will restore all your data exactly as you left it</li>
+          <li>• Click on any time slot within a day to edit assignments</li>
+          <li>• Enter multiple names separated by commas</li>
+          <li>• Press Enter to save or Escape to cancel</li>
+          <li>• Expected days are automatically calculated from calendar assignments (excluding Day Off)</li>
+          <li>• Edit the "Days Rendered" column to track actual attendance</li>
+          <li>• Use "Save Schedule" to create a backup export of your data</li>
+          <li>• Use "Export CSV" to download both schedule and payroll data</li>
+          <li>
+            • <strong>If data disappears after reload, click "Load Backup" to restore</strong>
+          </li>
+        </ul>
+      </div>
+    </div>
+  )
+}
