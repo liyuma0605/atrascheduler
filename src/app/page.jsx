@@ -681,11 +681,11 @@ export default function ScheduleEditor() {
       >
         <div className="text-xs font-medium text-gray-600 mb-1">
           {timeSlot === "8:00 AM - 4:00 PM"
-            ? "Morning"
+            ? "Shift 1"
             : timeSlot === "4:00 PM - 12:00 AM"
-              ? "Evening"
+              ? "Shift 2"
               : timeSlot === "12:00 AM - 8:00 AM"
-                ? "Night"
+                ? "Shift 3"
                 : "Day Off"}
         </div>
         <div className="text-xs space-y-1">
