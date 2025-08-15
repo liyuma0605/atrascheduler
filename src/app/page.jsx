@@ -617,16 +617,9 @@ export default function ScheduleEditor() {
 
     const isDateInCutoffPeriod = (scheduleDate: Date) => {
       if (selectedCutoffPeriod === "15th") {
-        // 26th-31st of previous month OR 1st-10th of current month
-        const prevMonthStart = new Date(prevYear, prevMonth - 1, 26)
-        const prevMonthEnd = new Date(prevYear, prevMonth, 0) // Last day of previous month
-        const currentMonthStart = new Date(year, monthIndex, 1)
-        const currentMonthEnd = new Date(year, monthIndex, 10)
-
-        return (
-          (scheduleDate >= prevMonthStart && scheduleDate <= prevMonthEnd) ||
-          (scheduleDate >= currentMonthStart && scheduleDate <= currentMonthEnd)
-        )
+        const startDate = new Date(year, prevMonth, 26-31)
+        const endDate = new Date(year, monthIndex, 10)
+        return scheduleDate >= startDate && scheduleDate <= endDate
       } else {
         // 11th to 25th of current month
         const startDate = new Date(year, monthIndex, 11)
@@ -635,47 +628,64 @@ export default function ScheduleEditor() {
       }
     }
 
-    // Count shifts within the selected cutoff period
-    Object.entries(scheduleData).forEach(([dateKey, dayData]) => {
-      const [yearStr, monthStr, dayStr] = dateKey.split("-")
-      const scheduleDate = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
+    const processScheduleData = (dataToProcess: any) => {
+      Object.entries(dataToProcess).forEach(([dateKey, dayData]) => {
+        const [yearStr, monthStr, dayStr] = dateKey.split("-")
+        const scheduleDate = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
 
-      if (isDateInCutoffPeriod(scheduleDate)) {
-        Object.entries(dayData).forEach(([timeSlot, slotData]) => {
-          if (timeSlot !== "DAY OFF" && slotData.names) {
-            slotData.names.forEach((name) => {
-              const trimmedName = name.trim().toLowerCase()
+        if (isDateInCutoffPeriod(scheduleDate)) {
+          Object.entries(dayData).forEach(([timeSlot, slotData]) => {
+            if (timeSlot !== "DAY OFF" && slotData.names) {
+              slotData.names.forEach((name) => {
+                const trimmedName = name.trim().toLowerCase()
 
-              Object.entries(payrollData).forEach(([category, employees]) => {
-                employees.forEach((employee) => {
-                  const fullName = employee.toLowerCase()
-                  let nameParts = []
+                Object.entries(payrollData).forEach(([category, employees]) => {
+                  employees.forEach((employee) => {
+                    const fullName = employee.toLowerCase()
+                    let nameParts = []
 
-                  if (fullName.includes(",")) {
-                    const [lastName, firstPart] = fullName.split(",")
-                    nameParts.push(lastName.trim())
-                    if (firstPart) {
-                      const firstNames = firstPart.trim().split(" ")
-                      nameParts.push(...firstNames)
+                    if (fullName.includes(",")) {
+                      const [lastName, firstPart] = fullName.split(",")
+                      nameParts.push(lastName.trim())
+                      if (firstPart) {
+                        const firstNames = firstPart.trim().split(" ")
+                        nameParts.push(...firstNames)
+                      }
+                    } else {
+                      nameParts = fullName.split(" ")
                     }
-                  } else {
-                    nameParts = fullName.split(" ")
-                  }
 
-                  const isMatch = nameParts.some((part) => {
-                    return part.includes(trimmedName) || trimmedName.includes(part)
+                    const isMatch = nameParts.some((part) => {
+                      return part.includes(trimmedName) || trimmedName.includes(part)
+                    })
+
+                    if (isMatch) {
+                      cutoffCounts[employee]++
+                    }
                   })
-
-                  if (isMatch) {
-                    cutoffCounts[employee]++
-                  }
                 })
               })
-            })
-          }
-        })
+            }
+          })
+        }
+      })
+    }
+
+    // Process current month data
+    processScheduleData(scheduleData)
+
+    if (selectedCutoffPeriod === "15th") {
+      const prevMonthKey = `${prevYear}-${prevMonth.toString().padStart(2, "0")}`
+      const prevMonthData = localStorage.getItem(`scheduleData_${prevMonthKey}`)
+      if (prevMonthData) {
+        try {
+          const parsedPrevMonthData = JSON.parse(prevMonthData)
+          processScheduleData(parsedPrevMonthData)
+        } catch (error) {
+          console.log("[v0] Could not parse previous month data:", error)
+        }
       }
-    })
+    }
 
     return cutoffCounts
   }, [scheduleData, payrollData, selectedMonth, selectedYear, selectedCutoffPeriod])
@@ -1118,6 +1128,10 @@ export default function ScheduleEditor() {
                 "/placeholder.svg" ||
                 "/placeholder.svg" ||
                 "/placeholder.svg" ||
+                "/placeholder.svg" ||
+                "/placeholder.svg" ||
+                "/placeholder.svg" ||
+                "/placeholder.svg" ||
                 "/placeholder.svg"
               }
               alt="Company Logo"
@@ -1352,7 +1366,8 @@ export default function ScheduleEditor() {
                             type="date"
                             value={employeeDetails[employee]?.dateHired || ""}
                             onChange={(e) => handleEmployeeDetailChange(employee, "dateHired", e.target.value)}
-                            className="w-32 h-8 text-center mx-auto text-xs"
+                            className="w-36 h-8 text-center mx-auto text-xs border-2 border-blue-200 focus:border-blue-400 bg-white"
+                            placeholder="Select date"
                           />
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-center">
