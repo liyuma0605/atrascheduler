@@ -228,53 +228,27 @@ export default function ScheduleEditor() {
     const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
     const prevYear = currentMonth === 1 ? year - 1 : year
 
-    const processScheduleDataForCutoff = (dataToProcess: any, cutoffPeriod: "15th" | "30th") => {
-      Object.entries(dataToProcess).forEach(([dateKey, dayData]) => {
-        const [yearStr, monthStr, dayStr] = dateKey.split("-")
-        const scheduleDate = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
+    const processScheduleDataForCutoff = (data, cutoff) => {
+      Object.entries(data).forEach(([dateKey, dayData]) => {
+        const date = new Date(dateKey)
+        const day = date.getDate()
 
-        let isInPeriod = false
-        if (cutoffPeriod === "15th") {
-          const startDate = new Date(prevYear, prevMonth - 1, 26)
-          const endDate = new Date(year, monthIndex, 10)
-          isInPeriod = scheduleDate >= startDate && scheduleDate <= endDate
-        } else {
-          const startDate = new Date(year, monthIndex, 11)
-          const endDate = new Date(year, monthIndex, 25)
-          isInPeriod = scheduleDate >= startDate && scheduleDate <= endDate
+        let isInCutoffPeriod = false
+        if (cutoff === "15th") {
+          isInCutoffPeriod =
+            (date.getMonth() === prevMonth - 1 && day >= 26) || (date.getMonth() === monthIndex && day <= 10)
+        } else if (cutoff === "30th") {
+          isInCutoffPeriod = date.getMonth() === monthIndex && day >= 11 && day <= 25
         }
 
-        if (isInPeriod) {
+        if (isInCutoffPeriod) {
           Object.entries(dayData).forEach(([timeSlot, slotData]) => {
             if (timeSlot !== "DAY OFF" && slotData.names) {
               slotData.names.forEach((name) => {
-                const trimmedName = name.trim().toLowerCase()
-
-                Object.entries(payrollData).forEach(([category, employees]) => {
-                  employees.forEach((employee) => {
-                    const fullName = employee.toLowerCase()
-                    let nameParts = []
-
-                    if (fullName.includes(",")) {
-                      const [lastName, firstPart] = fullName.split(",")
-                      nameParts.push(lastName.trim())
-                      if (firstPart) {
-                        const firstNames = firstPart.trim().split(" ")
-                        nameParts.push(...firstNames)
-                      }
-                    } else {
-                      nameParts = fullName.split(" ")
-                    }
-
-                    const isMatch = nameParts.some((part) => {
-                      return part.includes(trimmedName) || trimmedName.includes(part)
-                    })
-
-                    if (isMatch) {
-                      cutoffShifts[cutoffPeriod][employee]++
-                    }
-                  })
-                })
+                const fuzzyMatch = findFuzzyMatch(name, Object.values(payrollData).flat())
+                if (fuzzyMatch) {
+                  cutoffShifts[cutoff][fuzzyMatch] = (cutoffShifts[cutoff][fuzzyMatch] || 0) + 1
+                }
               })
             }
           })
@@ -287,14 +261,16 @@ export default function ScheduleEditor() {
     processScheduleDataForCutoff(scheduleData, "30th")
 
     // Process previous month data for 15th cutoff
-    const prevMonthKey = `${prevYear}-${prevMonth.toString().padStart(2, "0")}`
-    const prevMonthData = localStorage.getItem(`scheduleData_${prevMonthKey}`)
-    if (prevMonthData) {
-      try {
-        const parsedPrevMonthData = JSON.parse(prevMonthData)
-        processScheduleDataForCutoff(parsedPrevMonthData, "15th")
-      } catch (error) {
-        console.log("[v0] Could not parse previous month data:", error)
+    if (typeof window !== "undefined") {
+      const prevMonthKey = `${prevYear}-${prevMonth.toString().padStart(2, "0")}`
+      const prevMonthData = localStorage.getItem(`scheduleData_${prevMonthKey}`)
+      if (prevMonthData) {
+        try {
+          const parsedPrevMonthData = JSON.parse(prevMonthData)
+          processScheduleDataForCutoff(parsedPrevMonthData, "15th")
+        } catch (error) {
+          console.log("[v0] Could not parse previous month data:", error)
+        }
       }
     }
 
@@ -303,6 +279,8 @@ export default function ScheduleEditor() {
 
   useEffect(() => {
     const loadSavedData = async () => {
+      if (typeof window === "undefined") return
+
       try {
         console.log("Starting data load process...")
 
@@ -414,7 +392,7 @@ export default function ScheduleEditor() {
   }, [selectedMonth, selectedYear, monthlyPayrollData, monthlyScheduleData, isDataLoaded])
 
   useEffect(() => {
-    if (!isDataLoaded) return // Don't save until initial data is loaded
+    if (!isDataLoaded || typeof window === "undefined") return
 
     try {
       localStorage.setItem("monthlyScheduleData", JSON.stringify(monthlyScheduleData))
@@ -426,7 +404,7 @@ export default function ScheduleEditor() {
   }, [monthlyScheduleData, isDataLoaded])
 
   useEffect(() => {
-    if (!isDataLoaded) return
+    if (!isDataLoaded || typeof window === "undefined") return
 
     try {
       localStorage.setItem("monthlyPayrollData", JSON.stringify(monthlyPayrollData))
@@ -438,7 +416,7 @@ export default function ScheduleEditor() {
   }, [monthlyPayrollData, isDataLoaded])
 
   useEffect(() => {
-    if (!isDataLoaded) return
+    if (!isDataLoaded || typeof window === "undefined") return
 
     try {
       localStorage.setItem("monthlyRenderedDays", JSON.stringify(monthlyRenderedDays))
@@ -450,7 +428,7 @@ export default function ScheduleEditor() {
   }, [monthlyRenderedDays, isDataLoaded])
 
   useEffect(() => {
-    if (!isDataLoaded) return
+    if (!isDataLoaded || typeof window === "undefined") return
 
     try {
       localStorage.setItem("employeeDetails", JSON.stringify(employeeDetails))
@@ -562,62 +540,6 @@ export default function ScheduleEditor() {
 
     return days
   }, [selectedMonth, selectedYear])
-
-  const calculateExpectedDays = useMemo(() => {
-    const expectedCounts = {}
-
-    // Initialize all employees with 0
-    Object.entries(payrollData).forEach(([category, employees]) => {
-      employees.forEach((employee) => {
-        expectedCounts[employee] = 0
-      })
-    })
-
-    // Count appearances in calendar (excluding DAY OFF)
-    Object.entries(scheduleData).forEach(([dateKey, dayData]) => {
-      Object.entries(dayData).forEach(([timeSlot, slotData]) => {
-        if (timeSlot !== "DAY OFF" && slotData.names) {
-          slotData.names.forEach((name) => {
-            const trimmedName = name.trim().toLowerCase()
-
-            // Check against all employees for any name match
-            Object.entries(payrollData).forEach(([category, employees]) => {
-              employees.forEach((employee) => {
-                const fullName = employee.toLowerCase()
-
-                // Extract different parts of the full name for matching
-                let nameParts = []
-
-                if (fullName.includes(",")) {
-                  // Handle "Last, First Middle" format
-                  const [lastName, firstPart] = fullName.split(",")
-                  nameParts.push(lastName.trim()) // Last name
-                  if (firstPart) {
-                    const firstNames = firstPart.trim().split(" ")
-                    nameParts.push(...firstNames) // First name(s)
-                  }
-                } else {
-                  // Handle "First Last" or "First Middle Last" format
-                  nameParts = fullName.split(" ")
-                }
-
-                // Check if the calendar name matches any part of the employee's name
-                const isMatch = nameParts.some((part) => {
-                  return part.includes(trimmedName) || trimmedName.includes(part)
-                })
-
-                if (isMatch) {
-                  expectedCounts[employee]++
-                }
-              })
-            })
-          })
-        }
-      })
-    })
-
-    return expectedCounts
-  }, [scheduleData, payrollData])
 
   const calculateExpectedShiftsMonth = useMemo(() => {
     const shiftCounts = {}
@@ -780,55 +702,27 @@ export default function ScheduleEditor() {
     const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
     const prevYear = currentMonth === 1 ? year - 1 : year
 
-    const isDateInCutoffPeriod = (scheduleDate: Date) => {
-      if (selectedCutoffPeriod === "15th") {
-        const startDate = new Date(year, prevMonth, 26 - 31)
-        const endDate = new Date(year, monthIndex, 10)
-        return scheduleDate >= startDate && scheduleDate <= endDate
-      } else {
-        // 11th to 25th of current month
-        const startDate = new Date(year, monthIndex, 11)
-        const endDate = new Date(year, monthIndex, 25)
-        return scheduleDate >= startDate && scheduleDate <= endDate
-      }
-    }
+    const processScheduleData = (data) => {
+      Object.entries(data).forEach(([dateKey, dayData]) => {
+        const date = new Date(dateKey)
+        const day = date.getDate()
 
-    const processScheduleData = (dataToProcess: any) => {
-      Object.entries(dataToProcess).forEach(([dateKey, dayData]) => {
-        const [yearStr, monthStr, dayStr] = dateKey.split("-")
-        const scheduleDate = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
+        let isInCutoffPeriod = false
+        if (selectedCutoffPeriod === "15th") {
+          isInCutoffPeriod =
+            (date.getMonth() === prevMonth - 1 && day >= 26) || (date.getMonth() === monthIndex && day <= 10)
+        } else if (selectedCutoffPeriod === "30th") {
+          isInCutoffPeriod = date.getMonth() === monthIndex && day >= 11 && day <= 25
+        }
 
-        if (isDateInCutoffPeriod(scheduleDate)) {
+        if (isInCutoffPeriod) {
           Object.entries(dayData).forEach(([timeSlot, slotData]) => {
             if (timeSlot !== "DAY OFF" && slotData.names) {
               slotData.names.forEach((name) => {
-                const trimmedName = name.trim().toLowerCase()
-
-                Object.entries(payrollData).forEach(([category, employees]) => {
-                  employees.forEach((employee) => {
-                    const fullName = employee.toLowerCase()
-                    let nameParts = []
-
-                    if (fullName.includes(",")) {
-                      const [lastName, firstPart] = fullName.split(",")
-                      nameParts.push(lastName.trim())
-                      if (firstPart) {
-                        const firstNames = firstPart.trim().split(" ")
-                        nameParts.push(...firstNames)
-                      }
-                    } else {
-                      nameParts = fullName.split(" ")
-                    }
-
-                    const isMatch = nameParts.some((part) => {
-                      return part.includes(trimmedName) || trimmedName.includes(part)
-                    })
-
-                    if (isMatch) {
-                      cutoffCounts[employee]++
-                    }
-                  })
-                })
+                const fuzzyMatch = findFuzzyMatch(name, Object.values(payrollData).flat())
+                if (fuzzyMatch) {
+                  cutoffCounts[fuzzyMatch] = (cutoffCounts[fuzzyMatch] || 0) + 1
+                }
               })
             }
           })
@@ -836,10 +730,9 @@ export default function ScheduleEditor() {
       })
     }
 
-    // Process current month data
     processScheduleData(scheduleData)
 
-    if (selectedCutoffPeriod === "15th") {
+    if (selectedCutoffPeriod === "15th" && typeof window !== "undefined") {
       const prevMonthKey = `${prevYear}-${prevMonth.toString().padStart(2, "0")}`
       const prevMonthData = localStorage.getItem(`scheduleData_${prevMonthKey}`)
       if (prevMonthData) {
@@ -913,9 +806,10 @@ export default function ScheduleEditor() {
   }
 
   const saveSchedule = useCallback(() => {
+    if (typeof window === "undefined") return
+
     try {
-      const timestamp = new Date().toISOString().split("T")[0]
-      const scheduleKey = `schedule_${selectedMonth}_${selectedYear}_${timestamp}`
+      const scheduleKey = `scheduleData_${selectedYear}-${String(MONTHS.indexOf(selectedMonth) + 1).padStart(2, "0")}`
 
       const saveData = {
         monthlyScheduleData,
@@ -941,6 +835,8 @@ export default function ScheduleEditor() {
   }, [monthlyScheduleData, monthlyPayrollData, monthlyRenderedDays, employeeDetails, selectedMonth, selectedYear])
 
   const loadLatestBackup = useCallback(() => {
+    if (typeof window === "undefined") return
+
     try {
       const latestBackup = localStorage.getItem("latest_backup")
       if (latestBackup) {
@@ -998,13 +894,11 @@ export default function ScheduleEditor() {
         "Expected Shifts/Week 4",
         "Expected Days/Cutoff 15th",
         "Expected Days/Cutoff 30th",
-        "Expected Days (Schedule)",
         "Days Rendered",
       ])
 
       Object.entries(sortedPayrollData).forEach(([category, employees]) => {
         employees.forEach((employee) => {
-          const expected = calculateExpectedDays[employee] || 0
           const rendered = renderedDays[employee] || 0
           const details = employeeDetails[employee] || {}
           const monthlyShifts = calculateExpectedShiftsMonth[employee] || 0
@@ -1026,7 +920,6 @@ export default function ScheduleEditor() {
             week4Shifts,
             cutoff15th,
             cutoff30th,
-            expected,
             rendered,
           ])
         })
@@ -1034,11 +927,9 @@ export default function ScheduleEditor() {
 
       csvData.push([])
       csvData.push(["=== SUMMARY ==="])
-      const totalEmployees = Object.keys(calculateExpectedDays).length
-      const totalExpectedDays = Object.values(calculateExpectedDays).reduce((sum, days) => sum + days, 0)
+      const totalEmployees = Object.keys(renderedDays).length
       const totalRenderedDays = Object.values(renderedDays).reduce((sum, days) => sum + days, 0)
       csvData.push([`Total Employees: ${totalEmployees}`])
-      csvData.push([`Total Expected Days: ${totalExpectedDays}`])
       csvData.push([`Total Rendered Days: ${totalRenderedDays}`])
 
       const csvContent = csvData.map((row) => row.join(",")).join("\n")
@@ -1064,7 +955,6 @@ export default function ScheduleEditor() {
   }, [
     scheduleData,
     renderedDays,
-    calculateExpectedDays,
     selectedMonth,
     selectedYear,
     sortedPayrollData,
@@ -1343,6 +1233,8 @@ export default function ScheduleEditor() {
                 "/placeholder.svg" ||
                 "/placeholder.svg" ||
                 "/placeholder.svg" ||
+                "/placeholder.svg" ||
+                "/placeholder.svg" ||
                 "/placeholder.svg"
               }
               alt="Company Logo"
@@ -1558,9 +1450,6 @@ export default function ScheduleEditor() {
                       </Select>
                     </div>
                   </th>
-                  <th className="border border-gray-300 px-4 py-2 text-center font-semibold">
-                    Expected Number of Days (Schedule)
-                  </th>
                   <th className="border border-gray-300 px-4 py-2 text-center font-semibold">Days Rendered</th>
                   <th className="border border-gray-300 px-4 py-2 text-center font-semibold">Actions</th>
                 </tr>
@@ -1569,7 +1458,7 @@ export default function ScheduleEditor() {
                 {Object.entries(sortedPayrollData).map(([category, employees]) => (
                   <React.Fragment key={category}>
                     <tr className="bg-yellow-200">
-                      <td colSpan={8} className="border border-gray-300 px-4 py-2 font-bold text-center">
+                      <td colSpan={7} className="border border-gray-300 px-4 py-2 font-bold text-center">
                         {category}
                       </td>
                     </tr>
@@ -1599,9 +1488,6 @@ export default function ScheduleEditor() {
                           <div className="bg-gray-50 p-2 rounded text-center font-medium">
                             {calculateExpectedDaysCutoff[employee] || 0}
                           </div>
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2 text-center font-semibold text-blue-600">
-                          {calculateExpectedDays[employee] || 0}
                         </td>
                         <td className="border border-gray-300 px-4 py-2 text-center">
                           <Input
@@ -1661,4 +1547,28 @@ export default function ScheduleEditor() {
       </div>
     </div>
   )
+}
+
+const findFuzzyMatch = (inputName, employeeList) => {
+  const trimmedInput = inputName.trim().toLowerCase()
+
+  for (const employee of employeeList) {
+    const trimmedEmployee = employee.trim().toLowerCase()
+
+    if (trimmedEmployee.includes(trimmedInput) || trimmedInput.includes(trimmedEmployee)) {
+      return employee
+    }
+
+    const inputParts = trimmedInput.split(" ")
+    const employeeParts = trimmedEmployee.split(" ")
+
+    if (
+      inputParts.some((part) => trimmedEmployee.includes(part)) ||
+      employeeParts.some((part) => trimmedInput.includes(part))
+    ) {
+      return employee
+    }
+  }
+
+  return null
 }
