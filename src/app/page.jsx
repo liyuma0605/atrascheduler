@@ -93,18 +93,11 @@ export default function ScheduleEditor() {
 
   const [isDataLoaded, setIsDataLoaded] = useState(false)
 
-  const [employeeDetails, setEmployeeDetails] = useState<{
-    [employeeName: string]: {
-      dateHired?: string
-      expectedShiftsPerMonth?: number
-      expectedShiftsPerWeek?: number
-      expectedDaysPerCutoff?: number
-    }
-  }>({})
+  const [employeeDetails, setEmployeeDetails] = useState({})
 
-  const [selectedWeekForShifts, setSelectedWeekForShifts] = useState<number>(1)
+  const [selectedWeekForShifts, setSelectedWeekForShifts] = useState(1)
 
-  const [selectedCutoffPeriod, setSelectedCutoffPeriod] = useState<"15th" | "30th">("15th")
+  const [selectedCutoffPeriod, setSelectedCutoffPeriod] = useState("15th")
 
   const currentMonthKey = `${selectedMonth}_${selectedYear}`
 
@@ -615,9 +608,9 @@ export default function ScheduleEditor() {
     const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
     const prevYear = currentMonth === 1 ? year - 1 : year
 
-    const isDateInCutoffPeriod = (scheduleDate: Date) => {
+    const isDateInCutoffPeriod = (scheduleDate) => {
       if (selectedCutoffPeriod === "15th") {
-        const startDate = new Date(year, prevMonth, 26-31)
+        const startDate = new Date(year, prevMonth, 26 - 31)
         const endDate = new Date(year, monthIndex, 10)
         return scheduleDate >= startDate && scheduleDate <= endDate
       } else {
@@ -628,7 +621,7 @@ export default function ScheduleEditor() {
       }
     }
 
-    const processScheduleData = (dataToProcess: any) => {
+    const processScheduleData = (dataToProcess) => {
       Object.entries(dataToProcess).forEach(([dateKey, dayData]) => {
         const [yearStr, monthStr, dayStr] = dateKey.split("-")
         const scheduleDate = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr))
@@ -737,7 +730,7 @@ export default function ScheduleEditor() {
     [renderedDays, updateCurrentMonthRenderedDays],
   )
 
-  const handleEmployeeDetailChange = (employeeName: string, field: string, value: string | number) => {
+  const handleEmployeeDetailChange = (employeeName, field, value) => {
     setEmployeeDetails((prev) => ({
       ...prev,
       [employeeName]: {
@@ -1132,6 +1125,7 @@ export default function ScheduleEditor() {
                 "/placeholder.svg" ||
                 "/placeholder.svg" ||
                 "/placeholder.svg" ||
+                "/placeholder.svg" ||
                 "/placeholder.svg"
               }
               alt="Company Logo"
@@ -1310,10 +1304,7 @@ export default function ScheduleEditor() {
                   <th className="border border-gray-300 px-4 py-2 text-center font-semibold">
                     <div className="flex flex-col items-center gap-2">
                       <span>Expected Shifts/Week</span>
-                      <Select
-                        value={selectedWeekForShifts}
-                        onValueChange={(value: number) => setSelectedWeekForShifts(value)}
-                      >
+                      <Select value={selectedWeekForShifts} onValueChange={(value) => setSelectedWeekForShifts(value)}>
                         <SelectTrigger className="w-20 h-6 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -1329,10 +1320,7 @@ export default function ScheduleEditor() {
                   <th className="border border-gray-300 px-4 py-2 text-center font-semibold">
                     <div className="flex flex-col items-center gap-2">
                       <span>Expected Days/Cutoff</span>
-                      <Select
-                        value={selectedCutoffPeriod}
-                        onValueChange={(value: "15th" | "30th") => setSelectedCutoffPeriod(value)}
-                      >
+                      <Select value={selectedCutoffPeriod} onValueChange={(value) => setSelectedCutoffPeriod(value)}>
                         <SelectTrigger className="w-16 h-6 text-xs">
                           <SelectValue />
                         </SelectTrigger>
@@ -1447,4 +1435,3 @@ export default function ScheduleEditor() {
     </div>
   )
 }
-
