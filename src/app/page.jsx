@@ -1049,6 +1049,7 @@ export default function ScheduleEditor() {
         "Expected Shifts/Week 3",
         "Expected Shifts/Week 4",
         "Expected Shifts/Week 5",
+        "Expected Shifts/Week 6",
         "Expected Days/Cutoff 15th",
         "Expected Days/Cutoff 30th",
         "Days Rendered",
@@ -1656,6 +1657,7 @@ export default function ScheduleEditor() {
                           <SelectItem value={3}>Week 3</SelectItem>
                           <SelectItem value={4}>Week 4</SelectItem>
                           <SelectItem value={5}>Week 5</SelectItem>
+                          <SelectItem value={6}>Week 6</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
