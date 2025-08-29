@@ -7,7 +7,7 @@ import Calendar from "@/components/Calendar";
 import EmployeePayrollTable from "@/components/EmployeePayrollTable";
 import Instructions from "@/components/Instructions";
 
-import { MONTHS, INITIAL_PAYROLL_DATA, WEEKLY_SCHEDULE_TEMPLATE } from "@/utils/constants";
+import { MONTHS, INITIAL_PAYROLL_DATA, WEEKLY_SCHEDULE_TEMPLATE, DAYS_OF_WEEK } from "@/utils/constants";
 import { createInitialCalendarData, findFuzzyMatch, applyWeeklyScheduleTemplate } from "@/utils/helpers";
 import { useDataManagement } from "@/hooks/useDataManagement";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
@@ -670,6 +670,12 @@ export default function ScheduleEditor() {
   }, []);
 
   const exportToCSV = useCallback(() => {
+    // Check if all required data is available
+    if (!isDataLoaded || !isPreferencesLoaded) {
+      alert("❌ Please wait for data to load completely before exporting.");
+      return;
+    }
+    
     try {
       const csvData = [];
       const timestamp = new Date().toLocaleString();
@@ -690,13 +696,17 @@ export default function ScheduleEditor() {
         "Personnel Count",
       ]);
 
-      Object.entries(scheduleData).forEach(([dateKey, dayData]) => {
+      Object.entries(scheduleData || {}).forEach(([dateKey, dayData]) => {
+        if (!dayData) return;
+        
         const date = new Date(dateKey);
-        const dayName = DAYS_OF_WEEK[date.getDay()];
+        const dayName = DAYS_OF_WEEK[date.getDay()] || "Unknown";
 
         Object.entries(dayData).forEach(([timeSlot, slotData]) => {
-          const personnel = slotData.names.join("; ");
-          const personnelCount = slotData.names.length;
+          if (!slotData || !slotData.names) return;
+          
+          const personnel = Array.isArray(slotData.names) ? slotData.names.join("; ") : "";
+          const personnelCount = Array.isArray(slotData.names) ? slotData.names.length : 0;
           csvData.push([
             dateKey,
             dayName,
@@ -723,19 +733,23 @@ export default function ScheduleEditor() {
         "Days Rendered",
       ]);
 
-      Object.entries(sortedPayrollData).forEach(([category, employees]) => {
+      Object.entries(sortedPayrollData || {}).forEach(([category, employees]) => {
+        if (!Array.isArray(employees)) return;
+        
         employees.forEach((employee) => {
+          if (!employee) return;
+          
           const rendered = renderedDays[employee] || 0;
           const details = employeeDetails[employee] || {};
           const monthlyShifts = calculateExpectedShiftsMonth[employee] || 0;
-          const week1Shifts = calculateShiftsForAllWeeks[1][employee] || 0;
-          const week2Shifts = calculateShiftsForAllWeeks[2][employee] || 0;
-          const week3Shifts = calculateShiftsForAllWeeks[3][employee] || 0;
-          const week4Shifts = calculateShiftsForAllWeeks[4][employee] || 0;
+          const week1Shifts = calculateShiftsForAllWeeks[1]?.[employee] || 0;
+          const week2Shifts = calculateShiftsForAllWeeks[2]?.[employee] || 0;
+          const week3Shifts = calculateShiftsForAllWeeks[3]?.[employee] || 0;
+          const week4Shifts = calculateShiftsForAllWeeks[4]?.[employee] || 0;
           const cutoff15th =
-            calculateShiftsForAllCutoffs["15th"][employee] || 0;
+            calculateShiftsForAllCutoffs["15th"]?.[employee] || 0;
           const cutoff30th =
-            calculateShiftsForAllCutoffs["30th"][employee] || 0;
+            calculateShiftsForAllCutoffs["30th"]?.[employee] || 0;
 
           csvData.push([
             category,
@@ -755,9 +769,9 @@ export default function ScheduleEditor() {
 
       csvData.push([]);
       csvData.push(["=== SUMMARY ==="]);
-      const totalEmployees = Object.keys(renderedDays).length;
-      const totalRenderedDays = Object.values(renderedDays).reduce(
-        (sum, days) => sum + days,
+      const totalEmployees = Object.keys(renderedDays || {}).length;
+      const totalRenderedDays = Object.values(renderedDays || {}).reduce(
+        (sum, days) => sum + (days || 0),
         0
       );
       csvData.push([`Total Employees: ${totalEmployees}`]);
@@ -789,7 +803,16 @@ export default function ScheduleEditor() {
       }
     } catch (error) {
       console.error("Export error:", error);
-      alert("❌ Error exporting CSV. Please try again.");
+      console.error("Error details:", {
+        scheduleData: !!scheduleData,
+        sortedPayrollData: !!sortedPayrollData,
+        renderedDays: !!renderedDays,
+        employeeDetails: !!employeeDetails,
+        calculateExpectedShiftsMonth: !!calculateExpectedShiftsMonth,
+        calculateShiftsForAllWeeks: !!calculateShiftsForAllWeeks,
+        calculateShiftsForAllCutoffs: !!calculateShiftsForAllCutoffs,
+      });
+      alert(`❌ Error exporting CSV: ${error.message}\n\nPlease try again or contact support if the issue persists.`);
     }
   }, [
     scheduleData,
