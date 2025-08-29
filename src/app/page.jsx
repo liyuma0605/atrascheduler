@@ -2,10 +2,12 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react";
 import React from "react";
+import toast from "react-hot-toast";
 import Header from "@/components/Header";
 import Calendar from "@/components/Calendar";
 import EmployeePayrollTable from "@/components/EmployeePayrollTable";
 import Instructions from "@/components/Instructions";
+import ConfirmModal from "@/components/ConfirmModal";
 
 import { MONTHS, INITIAL_PAYROLL_DATA, WEEKLY_SCHEDULE_TEMPLATE, DAYS_OF_WEEK } from "@/utils/constants";
 import { createInitialCalendarData, findFuzzyMatch, applyWeeklyScheduleTemplate } from "@/utils/helpers";
@@ -46,6 +48,17 @@ export default function ScheduleEditor() {
   const [selectedCategory, setSelectedCategory] = useState("L2 OJT");
   const [selectedWeekForShifts, setSelectedWeekForShifts] = useState(1);
   const [selectedCutoffPeriod, setSelectedCutoffPeriod] = useState("15th");
+  
+  // Modal states
+  const [confirmModal, setConfirmModal] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    confirmText: "Confirm",
+    cancelText: "Cancel",
+    confirmVariant: "destructive"
+  });
 
   // Calculate the number of weeks in the selected month
   const weeksInMonth = useMemo(() => {
@@ -623,12 +636,15 @@ export default function ScheduleEditor() {
   };
 
   const saveSchedule = useCallback(async () => {
+    const loadingToast = toast.loading('Saving schedule data...');
+    
     try {
       // Create a complete backup using Firebase
       const backupKey = await firebaseService.createCompleteBackup();
 
-      alert(
-        `✅ Schedule and payroll data saved successfully!\n\nBackup created: ${backupKey}\n\nData includes:\n• ${
+      toast.dismiss(loadingToast);
+      toast.success(
+        `Schedule and payroll data saved successfully!\n\nBackup created: ${backupKey}\n\nData includes:\n• ${
           Object.keys(monthlyScheduleData).length
         } months of schedule data\n• ${
           Object.keys(monthlyPayrollData).length
@@ -636,7 +652,8 @@ export default function ScheduleEditor() {
       );
     } catch (error) {
       console.error("Error saving schedule:", error);
-      alert("❌ Error saving data. Please try again or contact support.");
+      toast.dismiss(loadingToast);
+      toast.error("Error saving data. Please try again or contact support.");
     }
   }, [
     monthlyScheduleData,
@@ -648,6 +665,8 @@ export default function ScheduleEditor() {
   ]);
 
   const loadLatestBackup = useCallback(async () => {
+    const loadingToast = toast.loading('Loading latest backup...');
+    
     try {
       // Get all available backups and load the most recent one
       const backups = await firebaseService.getAllBackups();
@@ -656,23 +675,26 @@ export default function ScheduleEditor() {
         const latestBackup = backups[0]; // Most recent backup
         await firebaseService.loadCompleteBackup(latestBackup.id);
         
+        toast.dismiss(loadingToast);
+        toast.success(`Latest backup loaded successfully!\nBackup: ${latestBackup.id}\nDate: ${new Date(latestBackup.timestamp).toLocaleString()}`);
+        
         // Reload data after restore
         window.location.reload();
-        
-        alert(`✅ Latest backup loaded successfully!\nBackup: ${latestBackup.id}\nDate: ${new Date(latestBackup.timestamp).toLocaleString()}`);
       } else {
-        alert("❌ No backup found.");
+        toast.dismiss(loadingToast);
+        toast.error("No backup found.");
       }
     } catch (error) {
       console.error("Error loading backup:", error);
-      alert("❌ Error loading backup.");
+      toast.dismiss(loadingToast);
+      toast.error("Error loading backup.");
     }
   }, []);
 
   const exportToCSV = useCallback(() => {
     // Check if all required data is available
     if (!isDataLoaded || !isPreferencesLoaded) {
-      alert("❌ Please wait for data to load completely before exporting.");
+      toast.error("Please wait for data to load completely before exporting.");
       return;
     }
     
@@ -797,8 +819,8 @@ export default function ScheduleEditor() {
         link.click();
         document.body.removeChild(link);
 
-        alert(
-          `✅ CSV exported successfully!\nFile: payroll_schedule_${selectedMonth}_${selectedYear}_${timestamp}.csv`
+        toast.success(
+          `CSV exported successfully!\nFile: payroll_schedule_${selectedMonth}_${selectedYear}_${timestamp}.csv`
         );
       }
     } catch (error) {
@@ -812,7 +834,7 @@ export default function ScheduleEditor() {
         calculateShiftsForAllWeeks: !!calculateShiftsForAllWeeks,
         calculateShiftsForAllCutoffs: !!calculateShiftsForAllCutoffs,
       });
-      alert(`❌ Error exporting CSV: ${error.message}\n\nPlease try again or contact support if the issue persists.`);
+      toast.error(`Error exporting CSV: ${error.message}\n\nPlease try again or contact support if the issue persists.`);
     }
   }, [
     scheduleData,
@@ -855,7 +877,7 @@ export default function ScheduleEditor() {
       const trimmedName = newEmployeeName.trim();
 
       if (payrollData[selectedCategory].includes(trimmedName)) {
-        alert("Employee already exists in this category!");
+        toast.error("Employee already exists in this category!");
         return;
       }
 
@@ -913,7 +935,7 @@ export default function ScheduleEditor() {
       }));
 
       setNewEmployeeName("");
-      alert(
+      toast.success(
         `Added ${trimmedName} to ${selectedCategory} for ${selectedMonth} ${selectedYear} and all future months`
       );
     }
@@ -928,12 +950,12 @@ export default function ScheduleEditor() {
 
   const removeEmployee = useCallback(
     (category, employeeName) => {
-      if (
-        window.confirm(
-          `Are you sure you want to remove ${employeeName} from ${category}?\n\nThis will remove them from ${selectedMonth} ${selectedYear} and all future months, but preserve historical data from past months.`
-        )
-      ) {
-        const futureMonthKeys = getFutureMonthKeys();
+      setConfirmModal({
+        isOpen: true,
+        title: "Remove Employee",
+        message: `Are you sure you want to remove ${employeeName} from ${category}?\n\nThis will remove them from ${selectedMonth} ${selectedYear} and all future months, but preserve historical data from past months.`,
+        onConfirm: () => {
+          const futureMonthKeys = getFutureMonthKeys();
 
         // Update payroll data for current and future months
         setMonthlyPayrollData((prev) => {
@@ -978,13 +1000,17 @@ export default function ScheduleEditor() {
           return newState;
         });
 
-        alert(
+        toast.success(
           `Removed ${employeeName} from ${category} for ${selectedMonth} ${selectedYear} and all future months`
         );
-      }
-    },
-    [selectedMonth, selectedYear, getFutureMonthKeys]
-  );
+      },
+      confirmText: "Remove",
+      cancelText: "Cancel",
+      confirmVariant: "destructive"
+    });
+  },
+  [selectedMonth, selectedYear, getFutureMonthKeys]
+);
 
   const toggleNameColor = useCallback((dateKey, timeSlot, name, event) => {
     event.stopPropagation(); // Prevent cell editing when clicking on name
@@ -1001,10 +1027,14 @@ export default function ScheduleEditor() {
   }, [updateRedMarkedNames]);
 
   const applyWeeklySchedule = useCallback(() => {
-    if (window.confirm("This will apply the weekly schedule template to the current month. Any existing assignments will be overwritten. Continue?")) {
-      const year = Number.parseInt(selectedYear);
-      const monthIndex = MONTHS.indexOf(selectedMonth);
-      const month = monthIndex + 1;
+    setConfirmModal({
+      isOpen: true,
+      title: "Apply Weekly Template",
+      message: "This will apply the weekly schedule template to the current month. Any existing assignments will be overwritten. Continue?",
+      onConfirm: () => {
+        const year = Number.parseInt(selectedYear);
+        const monthIndex = MONTHS.indexOf(selectedMonth);
+        const month = monthIndex + 1;
       
       // Get the first day of the month
       const firstDayOfMonth = new Date(year, monthIndex, 1);
@@ -1035,15 +1065,27 @@ export default function ScheduleEditor() {
       }
       
       updateCurrentMonthSchedule(newScheduleData);
-      alert("✅ Weekly schedule template applied successfully!");
-    }
+      toast.success("Weekly schedule template applied successfully!");
+      },
+      confirmText: "Apply",
+      cancelText: "Cancel",
+      confirmVariant: "default"
+    });
   }, [selectedMonth, selectedYear, updateCurrentMonthSchedule]);
 
   const clearSchedule = useCallback(() => {
-    if (window.confirm("This will clear all schedule assignments for the current month. This action cannot be undone. Continue?")) {
-      updateCurrentMonthSchedule({});
-      alert("✅ Schedule cleared successfully!");
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: "Clear Schedule",
+      message: "This will clear all schedule assignments for the current month. This action cannot be undone. Continue?",
+      onConfirm: () => {
+        updateCurrentMonthSchedule({});
+        toast.success("Schedule cleared successfully!");
+      },
+      confirmText: "Clear",
+      cancelText: "Cancel",
+      confirmVariant: "destructive"
+    });
   }, [updateCurrentMonthSchedule]);
 
 
@@ -1131,6 +1173,17 @@ export default function ScheduleEditor() {
       />
 
       <Instructions />
+      
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        confirmVariant={confirmModal.confirmVariant}
+      />
     </div>
   );
 }
