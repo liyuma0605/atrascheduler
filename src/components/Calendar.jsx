@@ -115,13 +115,6 @@ export default function Calendar({
                 )}
               </SelectContent>
             </Select>
-            
-            <button
-              onClick={onCancelEdit}
-              className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
-            >
-              Done
-            </button>
           </div>
         </div>
       );
@@ -153,7 +146,8 @@ export default function Calendar({
           {timeSlot}
         </div>
         <div className="text-xs space-y-1">
-          {cellData?.names?.map((name, index) => {
+          {(cellData?.names && cellData.names.length > 0)
+            ? cellData.names.map((name, index) => {
             const isDayOff = timeSlot === "Day Off";
             const nameKey = `${dateKey}-${timeSlot}-${name}`;
             const isRedMarked = redMarkedNames[nameKey];
@@ -177,7 +171,7 @@ export default function Calendar({
                 {name}
               </div>
             );
-          }) || <div className="text-gray-400 italic">Click to assign</div>}
+          }) : <div className="text-gray-400 italic">Click to assign</div>}
         </div>
         <Edit3 className="absolute top-1 right-1 w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
       </div>
