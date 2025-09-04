@@ -118,7 +118,7 @@ export default function Calendar({
             
             <button
               onClick={onCancelEdit}
-              className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300"
+              className="px-2 py-1 bg-gray-200 text-gray-700 rounded text-xs hover:bg-gray-300 relative z-50"
             >
               Done
             </button>
